@@ -60,7 +60,7 @@ flowchart LR
 
 **How depositors claim.** The claim contract records each wallet's farm shares at deployment, read from RAKE's farm. Nobody types in an amount. Each depositor claims from the wallet they deposited with and receives their share of each pool in the original token. Every wallet's share is published in [depositor_share_of_each_frozen_pool.csv](data/depositor_share_of_each_frozen_pool.csv). *(Appendix A3.)*
 
-**Fees.** Venus 20%, for the governance action and the review. Founder 10%, for the investigation, the contracts, the audit and this proposal. Depositors 70%. Neither fee depends on how many depositors claim.
+**Fees.** Venus 20%, for the governance action and the review. Founder 10%, recovery cost. Depositors 70%. Neither fee depends on how many depositors claim.
 
 **Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Paying out automatically would send funds to wallets nobody controls. The owner is a party to this recovery, since the positions sit in the owner's contracts. The owner also bore the 2021 compensation, and did and paid for the work behind this recovery. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever. We expect much to go unclaimed, because many 2021 wallets are inactive.
 
