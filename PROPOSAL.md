@@ -36,7 +36,7 @@ Coverage uses 24 July 2026 prices (block 114,966,322). *(Appendix A4.)*
 
 ## 3. Why now
 
-We first raised this with Venus in 2021, during Venus's own depeg crisis, when the Venus team had a full plate, and got no traction. Meanwhile we compensated depositors ourselves. We kept reaching out about every six months and tried every other route ourselves. Those routes are now exhausted *(Appendix A1)*, and Venus's new leadership can take this on. Every month of delay costs money:
+We first raised this with Venus in 2021, Venus had a full plate at the time due to unrelated events, so we put our focus on compensating affected users through the above means. Since then we hired an expert to ensure we have exhausted all options in our power to recover the funds and are confident it will require action from Venus. We have also completed development of the scripts, contracts and frontend that will be required to do a proper recovery. This proposal is coming after significant communication with the Venus team.
 
 - **The debt keeps growing.** It accrues interest nobody can repay.
 - **Venus's own risk actions erode the positions.** When DOT was deprecated as collateral, the DOT position was liquidated sixteen times in under a minute. LINK is exposed to the same.
