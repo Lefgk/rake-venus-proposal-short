@@ -13,7 +13,7 @@ We ask Venus to approve one atomic transaction that settles each frozen position
 pie title $1,074,900 net of debt (BSC block 131,610,085, Venus oracle prices)
     "Depositors 70% · $752,430" : 70
     "Venus treasury 20% · $214,980" : 20
-    "Founder 10% · $107,490" : 10
+    "Recovery cost 10% · $107,490" : 10
 ```
 
 Depositors have 90 days from when the claim window opens. Unclaimed funds then go to the contract owner.
@@ -49,7 +49,7 @@ flowchart LR
     F["7 frozen positions"] -->|"one VIP transaction"| P["Rescue patch, per market"]
     P -->|"20%"| V["Venus treasury"]
     P -->|"80%"| C["Claim contract"]
-    C -->|"open(): 10% founder fee"| O["Founder (strategy owner)"]
+    C -->|"open(): 10% recovery cost"| O["Strategy owner"]
     C -->|"70% of total · 90 days"| D["103 depositor wallets"]
     C -.->|"after 90 days: leftovers"| O
 ```
@@ -60,11 +60,11 @@ flowchart LR
 
 **How depositors claim.** The claim contract records each wallet's farm shares at deployment, read from RAKE's farm. Nobody types in an amount. Each depositor claims from the wallet they deposited with and receives their share of each pool in the original token. Every wallet's share is published in [depositor_share_of_each_frozen_pool.csv](data/depositor_share_of_each_frozen_pool.csv). *(Appendix A3.)*
 
-**Fees.** Venus 20%, for the governance action and the review. Founder 10%, recovery cost. Depositors 70%. Neither fee depends on how many depositors claim.
+**Fees.** Venus 20%, for the governance action and the review. Recovery cost 10%. Depositors 70%. Neither fee depends on how many depositors claim.
 
 **Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Since these events happened in 2021, a significant portion of the affected wallets are now inactive, lost or compromised. Sending tokens to them automatically would only result in permanent loss. The owner is a party to this recovery, since the positions sit in the owner's contracts. The owner also bore the cost of the 2021 compensation and paid for the work behind this recovery. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever.
 
-**Notifying depositors.** When the window opens, each of the 103 wallets gets an on-chain message: a zero-value transaction carrying the claim link and the deadline. The vote and the claim window are also announced on the Venus governance forum, RAKE's social media and community channels, the owner's X account and the owner's Telegram group, and the dates are on https://rakeclaim.com.
+**Notifying depositors.** When the window opens, each of the 103 wallets gets an on-chain message: a zero-value transaction carrying the claim link and the deadline. The vote and the claim window are also announced on the Venus governance forum, the Forex Shark Calls Telegram channel (@forexsharkcalls) that announced RAKE, the owner's X account and the owner's Telegram group, and the dates are on https://rakeclaim.com.
 
 ## 5. What Venus is being asked to accept
 

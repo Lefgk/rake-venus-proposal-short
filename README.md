@@ -4,7 +4,7 @@
 flowchart LR
     F["7 frozen RAKE positions<br/>on Venus · ~$1.07M net"] -->|"one VIP transaction"| S["VenusMarketRescuePatch"]
     S -->|"20%"| V["Venus treasury"]
-    S -->|"80%"| C["Claim contract<br/>10% founder fee"]
+    S -->|"80%"| C["Claim contract<br/>10% recovery cost"]
     C -->|"70% of total · 90 days"| D["103 depositor wallets"]
 ```
 

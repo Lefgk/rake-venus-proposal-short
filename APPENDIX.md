@@ -103,7 +103,7 @@ If Venus changes a market's implementation between steps 3 and 5, that market's 
 ```mermaid
 flowchart LR
     D["deploy<br/>shares per wallet × token<br/>read from RakeFarm, frozen"] --> F["80% arrives as vTokens<br/>(inside the VIP)"]
-    F --> O["open() by deployer<br/>redeems vTokens · 10% founder fee<br/>pools fixed (XVS can grow)"]
+    F --> O["open() by deployer<br/>redeems vTokens · 10% recovery cost<br/>pools fixed (XVS can grow)"]
     O --> C["claim() — 90 days<br/>each wallet, own tokens"]
     C --> S["sweep → owner<br/>after 90 days"]
     D -. "never opened" .-> E["sweep → owner, owner only<br/>after 120 days from deploy"]
@@ -112,7 +112,7 @@ flowchart LR
 | Share of total | |
 |---|---|
 | Venus | 20% |
-| Founder fee | 10% |
+| Recovery cost | 10% |
 | Depositors | 70% |
 
 - **Entitlement:** a wallet's cut of a token = pool × (wallet's farm shares ÷ strategy `sharesTotal`), both fixed at deploy. No amounts are typed in. The recorded shares sum to each pool's total, so the 103-wallet list is complete. One wallet (`0x667cBbEd2E1295EC25381e2b056547eb90FC8F96`) holds a single share of the BUSD pool, worth less than 1 wei, so it receives nothing.
