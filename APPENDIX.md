@@ -127,19 +127,21 @@ flowchart LR
 ## A4. The 2021 compensation data
 
 ```mermaid
-pie title Wallets by 25-Mar-2021 coverage (101 measured)
+pie title Wallets by 25-Mar-2021 coverage (103 wallets)
     "≥ 1.0x (fully covered)" : 80
     "< 1.0x" : 21
+    "Dust only, $0" : 2
 ```
 
 | Basis | Wallets ≥ 1.0x | Aggregate shortfall |
 |---|---:|---:|
-| First 7 days | 56 of 101 | $15,592 |
-| To 25 March 2021 | 80 of 101 | $4,130 |
+| First 7 days | 56 of 103 | $15,592 |
+| To 25 March 2021 | 80 of 103 | $4,130 |
 
 - Coverage per wallet = USD value of the RAKE that wallet earned from the frozen pools ÷ its frozen equity. Only rewards from the 7 frozen pools are counted.
 - Frozen equity is valued at 24 July 2026 prices (BSC block 114,966,322, total $972,308).
-- Wallets that never sold RAKE: 4, with a combined frozen equity of $68.
+- Dust wallets: 2 (`0x037ea234207D23A14d1c155fd58B57655A338a17`, `0x667cBbEd2E1295EC25381e2b056547eb90FC8F96`) hold 1 farm share each, worth $0, so they have no coverage ratio.
+- Wallets that never sold RAKE: 6, with a combined frozen equity of $68 (including the 2 dust wallets).
 - Founder wallet: 9,702.43 RAKE minted; 8,933.66 (92.08%) never moved; 4.5 RAKE (0.046%) sold.
 - Source: `data/depositor_2021_rake_compensation.csv` (one row per wallet; columns explained in `data/README.md`).
 

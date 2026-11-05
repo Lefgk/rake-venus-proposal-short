@@ -29,8 +29,8 @@ Our owner keys cannot fix it. No function restores the permission, the contracts
 We compensated depositors at our own expense. The frozen vaults kept their full RAKE rewards, and the founder stopped selling their allocation, their only pay. That allocation was at least as large as what the frozen pools earned, so every RAKE the founder did not sell left depositors the liquidity they needed to sell theirs. In effect, the founder's pay went to them. On-chain today:
 
 - **92% of the founder's RAKE has never moved.** Only 0.046% was ever sold.
-- **80 of 101 affected wallets** had received RAKE worth more than their whole frozen position by 25 March 2021, counting only the frozen pools. The other 21 were short about $4,100 in total.
-- **97 of 101 wallets sold their RAKE.** The four that never sold hold under $70 frozen.
+- **80 of 103 affected wallets** had received RAKE worth more than their whole frozen position by 25 March 2021, counting only the frozen pools. 21 were short about $4,100 in total, and 2 hold only dust ($0).
+- **97 of 103 wallets sold their RAKE.** The six that never sold hold under $70 frozen.
 
 Coverage uses 24 July 2026 prices (block 114,966,322). *(Appendix A4.)*
 
