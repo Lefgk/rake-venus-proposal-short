@@ -142,7 +142,17 @@ pie title Wallets by 25-Mar-2021 coverage (103 wallets)
 - Frozen equity is valued at 24 July 2026 prices (BSC block 114,966,322, total $972,308).
 - Dust wallets: 2 (`0x037ea234207D23A14d1c155fd58B57655A338a17`, `0x667cBbEd2E1295EC25381e2b056547eb90FC8F96`) hold 1 farm share each, worth $0, so they have no coverage ratio.
 - Wallets that never sold RAKE: 6, with a combined frozen equity of $68 (including the 2 dust wallets).
-- Founder wallet: 9,702.43 RAKE minted; 9,642.93 (99.39%) never used: 8,933.66 (92.08%) still in the wallet, 607.48 (6.26%) burned, 101.79 (1.05%) moved after April 2021. The rest: 55.00 (0.57%) sent to 3 wallets, 4.50 (0.05%) sold for BNB, 0.07 liquidity and 1 small transfer.
+- Founder wallet `0x16c7C45725A977ae6530e8dEE73F6da9aE2e7E07`, 9,702.43 RAKE minted:
+
+| Where | RAKE | % |
+|---|---|---|
+| Still in the wallet | 8,933.66 | 92.08% |
+| Burned (sent to `0x000000000000000000000000000000000000dEaD`) | 607.48 | 6.26% |
+| Sold for BNB: 10 sales, 8 Mar – 25 Apr 2021, 24.68 BNB (~$9,242) | 87.10 | 0.90% |
+| Sent to 3 wallets | 55.00 | 0.57% |
+| Sent to the RAKE token contract (unrecoverable) | 20.00 | 0.21% |
+| Liquidity + 1 small transfer | 0.07 | 0.00% |
+
 - Source: `data/depositor_2021_rake_compensation.csv` (one row per wallet; columns explained in `data/README.md`).
 
 ---
@@ -182,3 +192,28 @@ forge script script/VenusRescueProposal.s.sol --fork-url $BSC_RPC_URL
 | `VenusMarketRescuePatchTest` | debt settled from the strategies' own collateral, exchange rate never falls, admin-only, one-shot | 5 / 5 |
 
 Fork runs were made at BSC block 131,658,996 (39 / 39 pass).
+
+---
+
+## A6. Recovery cost, 10%
+
+```mermaid
+flowchart LR
+    V["VIP: 80% of net value"] --> C["Claim contract"]
+    C -->|"open(): 12.5% of what arrives<br/>= 10% of total · ~$107,490"| O["Strategy owner wallet<br/>(claim contract deployer)"]
+    C -->|"87.5% = 70% of total"| D["103 depositor wallets"]
+```
+
+| Work the 10% covers | Where to check it |
+|---|---|
+| Expert hired to investigate the bug and confirm there is no owner-side fix | A1 |
+| On-chain reconstruction of every depositor's position and 2021 compensation | A4, `data/` |
+| Rescue patch and claim contract | A2, A3, `contracts/src/` |
+| Fork tests, deploy scripts and the VIP builder | A5, `contracts/script/` |
+| In-house audit of the contracts | `contracts/` |
+| Claim site | https://rakeclaim.com |
+| This proposal | this repo |
+
+- Taken once per token as it arrives in the claim contract, including any XVS Venus grants. It is a fixed share and does not depend on how many depositors claim.
+- Paid to the wallet that deploys the claim contract, which is the strategy owner.
+- All of this work was paid for up front by the owner. Nobody else advanced any capital.

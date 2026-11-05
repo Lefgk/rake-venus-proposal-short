@@ -7,7 +7,7 @@
 
 Since February 2021, about $1,075,000 of depositor funds has been frozen in seven Venus markets by a bug in RAKE's own strategy contracts. Only a Venus governance action can release it.
 
-We ask Venus to approve one atomic transaction that settles each frozen position's debt from its own collateral, pays Venus 20%, and sends the rest to a claim contract. Each of the 103 depositors then withdraws their share from their own wallet. Nobody holds the funds in between.
+We ask Venus to approve one atomic transaction that settles each frozen position's debt from its own collateral, pays Venus 20%, and sends the rest to a claim contract. The claim contract keeps 10% of the total as recovery cost *(Appendix A6)*, and each of the 103 depositors withdraws their share of the remaining 70% from their own wallet. Nobody holds the funds in between.
 
 ```mermaid
 pie title $1,074,900 net of debt (BSC block 131,610,085, Venus oracle prices)
@@ -28,7 +28,7 @@ Our owner keys cannot fix it. No function restores the permission, the contracts
 
 We compensated depositors at our own expense. The frozen vaults kept their full RAKE rewards, and the founder stopped selling their allocation, their only pay. That allocation was at least as large as what the frozen pools earned, so every RAKE the founder did not sell left depositors the liquidity they needed to sell theirs. In effect, the founder's pay went to them. On-chain today:
 
-- **99.4% of the founder's RAKE was never used:** 92.1% is still in the original wallet, 6.3% was burned and 1.0% only moved after April 2021. Only 0.046% was ever sold.
+- **98.5% of the founder's RAKE was never sold or given away:** 92.1% is still in the original wallet and 6.5% was burned. Only 0.9% was ever sold, for about $9,200.
 - **80 of 103 affected wallets** had received RAKE worth more than their whole frozen position by 25 March 2021, counting only the frozen pools. 21 were short about $4,100 in total, and 2 hold only dust ($0).
 - **97 of 103 wallets sold their RAKE.** The six that never sold hold under $70 frozen.
 
@@ -60,7 +60,7 @@ flowchart LR
 
 **How depositors claim.** The claim contract records each wallet's farm shares at deployment, read from RAKE's farm. Nobody types in an amount. Each depositor claims from the wallet they deposited with and receives their share of each pool in the original token. Every wallet's share is published in [depositor_share_of_each_frozen_pool.csv](data/depositor_share_of_each_frozen_pool.csv). *(Appendix A3.)*
 
-**Fees.** Venus 20%, for the governance action and the review. Recovery cost 10%. Depositors 70%. Neither fee depends on how many depositors claim.
+**Fees.** Venus 20%, for the governance action and the review. Recovery cost 10% *(Appendix A6)*. Depositors 70%. Neither fee depends on how many depositors claim.
 
 **Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Since these events happened in 2021, a significant portion of the affected wallets are now inactive, lost or compromised. Sending tokens to them automatically would only result in permanent loss. The owner is a party to this recovery, since the positions sit in the owner's contracts. The owner also bore the cost of the 2021 compensation and paid for the work behind this recovery. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever.
 
@@ -105,3 +105,4 @@ The full technical appendix is in [APPENDIX.md](APPENDIX.md):
 - **A3:** the claim contract and every wallet's share
 - **A4:** the 2021 compensation data
 - **A5:** tests and reproduction
+- **A6:** the 10% recovery cost
