@@ -120,7 +120,7 @@ flowchart LR
 - **XVS (optional, up to Venus, stays open):** Venus may send XVS at any time, in any number of transfers, before or after `open()`; each arrival is fee'd once and claimable during the window. A wallet's XVS cut = XVS pool × Σ(pool weight × wallet shares ÷ total) ÷ Σ weights. The weights are the XVS each strategy earned (vETH 2,025 · vBUSD 1,887 · vUSDC 1,706 · vBTC 1,423 · vLINK 481 · vUSDT 421 · vDOT 79).
 - **Can every wallet claim?** No depositor is a contract. 9 of the 103 carry EIP-7702 delegation code (`0xef0100…`); these are key-held wallets that call `claim()` directly.
 - **Entitlement table:** `data/depositor_share_of_each_frozen_pool.csv` gives each wallet's % of each pool, read from RakeFarm `userInfo` ÷ `sharesTotal`. The 103 wallets sum to 100.000000% of every pool; `DeployRakeDepositorsClaimTest` checks that the recorded shares cover every pool. Amounts = % × the pool's depositor share on the day the funds arrive.
-- **Claim site:** https://claim-frontend-one.vercel.app
+- **Claim site:** https://rakeclaim.com
 
 ---
 
