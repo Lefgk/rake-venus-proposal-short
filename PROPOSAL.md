@@ -49,9 +49,9 @@ flowchart LR
     F["7 frozen positions"] -->|"one VIP transaction"| P["Rescue patch, per market"]
     P -->|"20%"| V["Venus treasury"]
     P -->|"80%"| C["Claim contract"]
-    C -->|"open(): 10% founder fee"| O["Founder"]
+    C -->|"open(): 10% founder fee"| O["Founder (strategy owner)"]
     C -->|"70% of total · 90 days"| D["103 depositor wallets"]
-    C -.->|"after 90 days: leftovers"| W["Owner"]
+    C -.->|"after 90 days: leftovers"| O
 ```
 
 **One transaction.** For each market, the VIP swaps in a narrowly scoped rescue patch. The patch settles the position's debt from its own collateral and moves the net vTokens, 20% to the Venus treasury and 80% to the claim contract. The VIP then restores the original contract. The exchange rate and cash do not change, so other suppliers lose nothing. If any step fails, everything reverts. No capital is advanced and nobody has to forward funds. *(Appendix A2 and A5.)*
