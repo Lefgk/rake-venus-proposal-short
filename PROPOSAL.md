@@ -5,151 +5,96 @@
 
 ## Summary
 
-Since February 2021, about $1,075,000 of depositor funds has been frozen in seven Venus markets because of a bug in RAKE's own strategy contracts. Neither RAKE nor the depositors can reach these funds. The only remaining way to release them is a Venus governance action.
+Since February 2021, about $1,075,000 of depositor funds has been frozen in seven Venus markets by a bug in RAKE's own strategy contracts. Only a Venus governance action can release it.
 
-We are asking Venus to approve one atomic transaction that does three things:
+We ask Venus to approve one atomic transaction that settles each frozen position's debt from its own collateral, pays Venus 20%, and sends the rest to a claim contract. Each of the 103 depositors then withdraws their share from their own wallet. Nobody holds the funds in between.
 
-1. It settles the frozen positions' debt against their own collateral, at no cost to other Venus suppliers.
-2. It pays Venus a 20% recovery fee.
-3. It sends the remainder to a claim contract, where each original depositor can withdraw their share directly from their own wallet.
+```mermaid
+pie title $1,074,900 net of debt (BSC block 131,610,085, Venus oracle prices)
+    "Depositors 70% · $752,430" : 70
+    "Venus treasury 20% · $214,980" : 20
+    "Founder 10% · $107,490" : 10
+```
 
-Once the funds have arrived, the claim contract's deployer opens a 90-day claim window.
-
-Neither we nor anyone else holds the funds at any point. They move from the frozen positions to the claim contract inside a single Venus transaction.
-
-**At a glance:**
-- Funds frozen, net of debt: about $1,074,900 (BSC block 131,610,085, 4 Nov 2026, Venus oracle prices)
-- Venus recovery fee, 20%: about $214,980
-- Founder fee, 10%: about $107,490
-- Available to depositors, 70%: about $752,430
-- Affected depositor wallets: 103
-- Claim window: 90 days from when the window is opened
-- After the window: unclaimed funds go to the contract owner
+Depositors have 90 days from when the claim window opens. Unclaimed funds then go to the contract owner.
 
 ## 1. What happened
 
-RAKE was an auto-compounding yield farm on BNB Chain, launched on 25 February 2021. Alongside its liquidity pools it offered single-asset vaults that supplied to Venus: BUSD, BTC, ETH, LINK, USDT, USDC and DOT.
+RAKE, an auto-compounding farm on BNB Chain, launched on 25 February 2021 with single-asset vaults that supplied to Venus: BUSD, BTC, ETH, LINK, USDT, USDC and DOT. About 80 minutes after launch we paused deposits as a precaution. The strategy code, an outdated copy of AutoFarm's leveraged Venus strategy, un-pauses without restoring the vault's permission to use its Venus market, so none of the seven could supply, repay or withdraw again.
 
-About an hour and twenty minutes after launch, we noticed a minor issue on the website and, as a precaution, paused deposits. Pausing is a routine safety measure. In our case it triggered a bug.
-
-The strategy code was based on an outdated copy of AutoFarm's leveraged Venus strategy. In that copy, the function that un-pauses a vault restores most of its permissions but leaves one of them, the permission to interact with its Venus market, switched off. Once the vaults were un-paused, none of the seven could supply, repay or withdraw. The funds were frozen.
-
-We hold the owner keys to these contracts, and they do not help. The contracts have no function that can turn the permission back on, they cannot be upgraded, and the emergency function deliberately excludes the exact tokens involved. We have tested every available route, including deliberately triggering liquidation of our own positions, and none of them works. *(Appendix A1.)*
-
-The only party that can still act is Venus, which controls the market contracts holding these positions.
+Our owner keys cannot fix it. No function restores the permission, the contracts cannot be upgraded, and the emergency function excludes these exact tokens. We tested every route, including liquidating our own positions. Only Venus, which controls the markets, can act. *(Appendix A1.)*
 
 ## 2. What we did in 2021
 
-When the vaults froze, we chose to compensate affected depositors immediately, at our own expense, and we did not wait for a technical fix.
+We compensated depositors at our own expense. The frozen vaults kept their full RAKE rewards, and the founder stopped selling the founder allocation, the founder's only pay, so RAKE stayed liquid enough for depositors to sell. On-chain today:
 
-**We kept paying them.** Other farms that hit similar problems cut rewards to their broken pools, because those pools no longer earned the platform anything. We did the opposite. The frozen vaults kept receiving their full share of RAKE rewards, so affected depositors kept earning.
+- **92% of the founder's RAKE has never moved.** Only 0.046% was ever sold.
+- **80 of 101 affected wallets** had received RAKE worth more than their whole frozen position by 25 March 2021, counting only the frozen pools. The other 21 were short about $4,100 in total.
+- **97 of 101 wallets sold their RAKE.** The four that never sold hold under $70 frozen.
 
-**We stopped selling the founder allocation.** RAKE raised no outside money. The founder's only compensation for building the platform was a share of newly issued RAKE, which was meant to be sold gradually over time. We stopped selling it entirely. That kept RAKE's price and liquidity strong enough for affected depositors to sell their rewards and recover the value of their frozen assets.
-
-The result can be checked on-chain today:
-
-- **Of the RAKE minted to the founder, 92% has never moved.** It is still in the wallet it was minted to. It was held through a price decline from over $43,000 to under $1. Only 0.046% was ever sold.
-- **On the 25 March 2021 measure, 80 of 101 affected wallets had received RAKE worth more than their entire frozen position**, counting only rewards from the frozen pools. The total shortfall across the remaining 21 wallets was about $4,100.
-- **97 of the 101 wallets sold their RAKE** and realised that value. The four that never sold held a combined frozen balance of under $70.
-
-These coverage figures value each frozen position at 24 July 2026 prices (BSC block 114,966,322). The summary figures above use today's prices; each wallet's share of the recovery does not depend on either.
-
-Most affected depositors therefore did not lose money from the freeze, and many came out ahead, because the founder gave up the compensation that would otherwise have been paid out. *(Appendix A4.)*
-
-We are not claiming that every depositor was fully compensated, and no depositor signed anything accepting the rewards as settlement. That is one reason this proposal returns the funds to depositors rather than to us.
+Coverage uses 24 July 2026 prices (block 114,966,322). Not every depositor was fully covered and nobody signed a settlement, which is why the funds now go to depositors, not to us. *(Appendix A4.)*
 
 ## 3. Why now
 
-We first raised this with Venus in 2021. At the time, the Venus team had a full plate with unrelated matters, and affected depositors had already been largely compensated through the measures above. We set it aside until it could be given proper attention.
+We first raised this with Venus in 2021 and set it aside while depositors were being compensated. Waiting now costs money:
 
-Waiting is no longer harmless:
-
-- **The positions are losing value.** Their debt keeps accruing interest that cannot be repaid.
-- **Venus's own risk management is eroding them.** When Venus deprecated DOT as collateral, the frozen DOT position was liquidated sixteen times in under a minute, and most of its value was lost to liquidation penalties and interest. The LINK position is exposed to the same thing.
-- **They are a liability for Venus.** These are positions that nobody can repay or manage. Closing them cleanly removes that exposure for good.
+- **The debt keeps growing.** It accrues interest nobody can repay.
+- **Venus's own risk actions erode the positions.** When DOT was deprecated as collateral, the DOT position was liquidated sixteen times in under a minute. LINK is exposed to the same.
+- **Unmanageable positions are a liability** on Venus's books.
 
 ## 4. The proposal
 
-### One transaction, no intermediary
+```mermaid
+flowchart LR
+    F["7 frozen positions"] -->|"one VIP transaction"| P["Rescue patch, per market"]
+    P -->|"20%"| V["Venus treasury"]
+    P -->|"80%"| C["Claim contract"]
+    C -->|"open(): 10% founder fee"| O["Founder"]
+    C -->|"70% of total · 90 days"| D["103 depositor wallets"]
+    C -.->|"after 90 days: leftovers"| W["Owner"]
+```
 
-The recovery happens entirely inside one Venus governance transaction. For each of the seven markets, Venus temporarily installs a narrowly scoped contract. That contract settles the frozen position's debt using the position's own collateral and moves what remains out of the frozen account, and then the original Venus contract is restored, all within the same transaction. The same contract sends 20% of what it moves to the Venus treasury and the rest to the claim contract, as Venus market tokens (vTokens). The claim contract converts its share back to the original tokens when the claim window opens.
+**One transaction.** For each market, the VIP swaps in a narrowly scoped rescue patch. The patch settles the position's debt from its own collateral and moves the net vTokens, 20% to the Venus treasury and 80% to the claim contract. The VIP then restores the original contract. The exchange rate and cash do not change, so other suppliers lose nothing. If any step fails, everything reverts. No capital is advanced and nobody has to forward funds. *(Appendix A2 and A5.)*
 
-Settling the debt this way costs other Venus suppliers nothing. The market's exchange rate and cash are unchanged, and the contract is built to fail if that is ever not true. *(Appendix A2 and A5.)*
+**Who deploys what.** RAKE deploys the claim contract. Venus deploys the seven rescue patches bound to it, so the VIP only runs code Venus deployed. Every address is in `addresses.json`.
 
-No capital has to be advanced, nobody has to be trusted to forward funds afterwards, and if any step fails, the entire transaction reverts and nothing moves.
+**How depositors claim.** The claim contract records each wallet's farm shares at deployment, read from RAKE's farm. Nobody types in an amount. Each depositor claims from the wallet they deposited with and receives their share of each pool in the original token. Every wallet's share is published in [depositor_share_of_each_frozen_pool.csv](data/depositor_share_of_each_frozen_pool.csv). *(Appendix A3.)*
 
-**We will give Venus the claim contract address once terms are agreed.** Venus then deploys the seven rescue patches, each with that address fixed inside it. Before the vote, Venus should check every address the transaction touches: the seven strategy positions, the seven markets, the rescue contract, the Venus treasury that receives the 20%, and the claim contract.
+**Fees.** Venus 20%, for the governance action and the review. Founder 10%, for the investigation, the contracts, the audit and this proposal. Depositors 70%. Neither fee depends on how many depositors claim.
 
-### How depositors claim
+**Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Paying out automatically would send funds to wallets nobody controls, and the owner bore the 2021 compensation. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever. We expect much to go unclaimed, because many 2021 wallets are inactive.
 
-The claim contract records, at deployment, each of the 103 affected wallets and its share of each frozen pool, taken directly from RAKE's farm contract. Nobody types in an amount.
-
-Each depositor claims by calling the contract from the same wallet they deposited with. They receive their share of each pool in the original token (BTC, ETH, USDC and so on), not converted to a dollar figure. The per-wallet table, each wallet's percentage of each pool, is published in this repo so every depositor can check their own share. Token amounts follow from it on the day the funds arrive. *(Appendix A3.)*
-
-### Fees
-
-- **Venus, 20%**, for the governance action and for taking on the review.
-- **Founder, 10%**, for the work of making this recovery possible. That covers hiring a developer, the technical investigation, building and testing the contracts, the audit, and this proposal.
-- **Depositors, 70%**, claimable in full by every affected wallet.
-
-Neither fee depends on how many depositors claim.
-
-### Unclaimed funds
-
-The claim window is 90 days from when the claim contract's deployer opens it (`open()`). Any balance still unclaimed after that goes to the strategy contracts' owner.
-
-As a safeguard, if the window is never opened, everything in the claim contract goes to the owner 120 days after the contract was deployed, so funds can never be locked in it permanently.
-
-We expect a significant portion to go unclaimed, and we are saying so plainly rather than leaving reviewers to work it out. These deposits were made in February 2021, at the height of a market cycle, and many of the wallets have been inactive for years. We are proposing that unclaimed funds go to the owner for three reasons:
-
-1. **Funds should not be sent to wallets nobody controls.** Paying out automatically to all 103 addresses would send money to wallets that may be lost or abandoned. Requiring each depositor to claim from their own wallet means only someone in control of that wallet receives funds.
-2. **The owner is the only remaining party with a claim to what is left.** The frozen positions belong to the owner's contracts. Without a fallback, unclaimed funds would sit in an abandoned contract forever.
-3. **The owner already compensated depositors once.** In 2021, the founder gave up the RAKE allocation that was their only payment for building the platform, so that affected depositors could recover their value. Every depositor who comes back still receives their full share. Only funds that nobody claims go to the party that bore that cost.
-
-### Notifying depositors
-
-So that the 90 days is a real window and not a formality, we will:
-
-- send an on-chain message to each of the 103 depositing wallets when the window opens: a zero-value transaction whose data carries the claim link and the deadline, visible on BscScan; and
-- publish the opening and closing dates on the claim page: https://claim-frontend-one.vercel.app
+**Notifying depositors.** When the window opens, each of the 103 wallets gets an on-chain message: a zero-value transaction carrying the claim link and the deadline. The dates are also on https://claim-frontend-one.vercel.app.
 
 ## 5. What Venus is being asked to accept
 
-Venus is being asked to accept a temporary change to seven market contracts, inside one transaction, that:
+A temporary change to seven market contracts, inside one transaction, that:
 
-- touches only the seven frozen RAKE positions, hard-coded and not adjustable;
-- creates no bad debt, because each position's debt is cleared before anything moves;
-- leaves other suppliers' balances, the exchange rate and the market's cash unchanged;
-- does not create XVS for anyone: the XVS of the claim contract and the treasury is settled first, so the recovery earns no back-dated rewards (tested: 0 XVS, versus about 3,246 XVS without that step). The XVS the seven strategies earned (about 8,022 XVS) cannot be moved by the strategies; it is up to Venus whether to grant it to the claim contract, in the same transaction or later, in which case depositors receive it pro-rata, and otherwise it stays with Venus;
-- restores the original contracts before the transaction ends; and
-- reverts completely if any step fails.
+- touches only the seven hard-coded RAKE positions;
+- creates no bad debt and leaves other suppliers' balances, the exchange rate and cash unchanged;
+- creates no XVS for anyone, because the receivers' XVS is settled first; Venus may choose to grant the ~8,022 XVS the strategies earned to depositors *(Appendix A2)*;
+- restores the original contracts, and reverts completely if any step fails.
 
-In return, Venus gets:
-
-- a 20% recovery fee, about $215,000;
-- seven positions that nobody can manage removed from its books; and
-- an in-house audited, fully tested recovery, paid for by us; the contracts and their tests are published with this proposal.
+In return Venus gets about $215,000, seven unmanageable positions closed, and an in-house audited, fully tested recovery paid for by us.
 
 ## 6. Precedent
 
-We expect Venus to ask whether approving this invites every failed 2021 project to ask for the same. We think the answer should be no, and we would support a clear standard for any future request. It would require:
+We would support a standard for any future request:
 
-- that the problem was caused by the project's own code, not by Venus;
-- proof that no owner-side fix exists;
-- no bad debt and no change to other users' balances or rewards;
-- a narrowly scoped, fully reversible, single-transaction change;
-- funds returned to affected users through a contract, not through the project team; and
-- reproducible tests anyone can run.
+- the bug is in the project's own code, not Venus's;
+- no owner-side fix exists;
+- no bad debt and no change to other users;
+- a narrow, single-transaction change;
+- funds go to users through a contract, not the project team;
+- tests anyone can run.
 
-This proposal is built to meet all of those conditions.
-
-We are aware that a previous recovery of this kind, AutoFarm's, damaged trust: funds went to the project owner on a promise of later compensation to users that was never kept. This proposal is structured the other way round. Depositors were compensated in 2021, and the evidence is on-chain. The recovered funds now go to depositors first, through a contract we do not control.
+This proposal meets all six. In AutoFarm's recovery, funds went to the owner on a promise that was never kept; here they go to depositors first, through a contract we do not control.
 
 ## 7. Disclosures
 
-- **Figures will change.** Token amounts are fixed, but dollar values move with prices. Every figure will be refreshed on the day of filing; `contracts/script/RescueAmounts.s.sol` reproduces them from the chain at any block.
-- **Our data is our own.** The per-wallet compensation figures are reconstructed by us from public blockchain data. They can be checked independently, and we welcome that.
-- **Where part of the BUSD position went.** The position's equity peaked at about 315,956 BUSD in mid-2023. After Venus wound down BUSD, the market stopped paying supply interest while the frozen borrow kept accruing, which cost about 57,000 BUSD. On 27 October 2023 the position was liquidated through Venus's Liquidator in one transaction (`0x40c6147f55b66c4b11a4780723e0e92756000cce0634c342f2366fa1f0370273`): it repaid the 521,222 BUSD borrow and seized 573,344 BUSD of collateral, a 52,123 BUSD penalty. 206,755 BUSD remains, with no debt, and is part of this recovery.
+- **Figures will change.** Dollar values move with prices and will be refreshed on filing day; `contracts/script/RescueAmounts.s.sol` reproduces them at any block.
+- **Our data is our own.** The per-wallet compensation figures are our reconstruction from public chain data. Independent checks are welcome.
+- **Part of the BUSD position is gone.** Interest after Venus wound down BUSD, and a liquidation on 27 October 2023, took part of it. 206,755 BUSD remains, with no debt. *(Details in Appendix A1.)*
 
 ## Technical appendix
 
@@ -157,6 +102,6 @@ The full technical appendix is in [APPENDIX.md](APPENDIX.md):
 
 - **A1:** the bug, and why there is no owner-side fix
 - **A2:** the rescue, one VIP transaction
-- **A3:** the claim contract, with the per-wallet table in [depositor_share_of_each_frozen_pool.csv](data/depositor_share_of_each_frozen_pool.csv)
+- **A3:** the claim contract and every wallet's share
 - **A4:** the 2021 compensation data
 - **A5:** tests and reproduction
