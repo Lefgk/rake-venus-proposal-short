@@ -142,7 +142,7 @@ pie title Wallets by 25-Mar-2021 coverage (103 wallets)
 - Frozen equity is valued at 24 July 2026 prices (BSC block 114,966,322, total $972,308).
 - Dust wallets: 2 (`0x037ea234207D23A14d1c155fd58B57655A338a17`, `0x667cBbEd2E1295EC25381e2b056547eb90FC8F96`) hold 1 farm share each, worth $0, so they have no coverage ratio.
 - Wallets that never sold RAKE: 6, with a combined frozen equity of $68 (including the 2 dust wallets).
-- Founder wallet: 9,702.43 RAKE minted; 8,933.66 (92.08%) never moved; 4.5 RAKE (0.046%) sold.
+- Founder wallet: 9,702.43 RAKE minted; 9,642.93 (99.39%) never used: 8,933.66 (92.08%) still in the wallet, 607.48 (6.26%) burned, 101.79 (1.05%) moved after April 2021. The rest: 55.00 (0.57%) sent to 3 wallets, 4.50 (0.05%) sold for BNB, 0.07 liquidity and 1 small transfer.
 - Source: `data/depositor_2021_rake_compensation.csv` (one row per wallet; columns explained in `data/README.md`).
 
 ---
