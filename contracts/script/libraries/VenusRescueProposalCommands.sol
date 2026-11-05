@@ -24,6 +24,8 @@ library VenusRescueProposalCommands {
     ///    (retires the strategy's debt from its own collateral, moves the net vTokens 20% to the
     ///    Venus treasury and 80% to the claim contract), then restore the original implementation.
     /// 3. Optional: grant the strategies' earned XVS to the claim contract.
+    /// 4. Open the claim window: the claim contract redeems its vTokens, takes the 10% recovery
+    ///    cost and starts the 90 days, in the same transaction that delivered the funds.
     function build(address claim, address[7] memory rescuePatches, bool includeXvsGrant)
         internal
         view
@@ -33,7 +35,7 @@ library VenusRescueProposalCommands {
         address[7] memory markets = RakeFrozenPositions.vTokens();
         address[] memory marketList = RakeFrozenPositions.vTokenList();
 
-        c = new Command[](XVS_SETTLE_COMMANDS + 4 * RakeFrozenPositions.COUNT + (includeXvsGrant ? 1 : 0));
+        c = new Command[](XVS_SETTLE_COMMANDS + 4 * RakeFrozenPositions.COUNT + (includeXvsGrant ? 1 : 0) + 1);
         uint256 n;
         c[n++] = Command(comptroller, "claimVenus(address,address[])", abi.encode(claim, marketList));
         c[n++] = Command(
@@ -53,6 +55,7 @@ library VenusRescueProposalCommands {
                 comptroller, "_grantXVS(address,uint256)", abi.encode(claim, RakeFrozenPositions.OPTIONAL_XVS_GRANT)
             );
         }
+        c[n++] = Command(claim, "open()", "");
     }
 
     /// The exact bytes the Timelock sends for a command.

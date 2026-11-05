@@ -28,8 +28,8 @@ interface IComptrollerS {
 
 /// Simulates script/VenusRescueProposal.s.sol on a BSC fork: the contracts are deployed exactly as
 /// script/DeployRakeDepositorsClaim.s.sol and script/DeployVenusMarketRescuePatches.s.sol deploy them, then every command of the proposal is sent
-/// from the Venus Normal Timelock, byte-for-byte as Venus would submit it. The owner then opens
-/// the claim contract, which redeems its vTokens.
+/// from the Venus Normal Timelock, byte-for-byte as Venus would submit it. Its last command opens
+/// the claim contract, which redeems its vTokens, in the same transaction.
 contract VenusRescueProposalTest is Test {
     using VenusRescueProposalCommands for VenusRescueProposalCommands.Command;
 
@@ -57,7 +57,7 @@ contract VenusRescueProposalTest is Test {
         uint256 b = vm.envOr("FORK_BLOCK", uint256(0));
         if (b == 0) vm.createSelectFork(vm.envString("BSC_RPC_URL"));
         else vm.createSelectFork(vm.envString("BSC_RPC_URL"), b);
-        // This test is the deployer: owner, fee recipient and beneficiary of the claim contract.
+        // This test is the deployer: fee recipient and beneficiary of the claim contract.
         claim = RescueContractsDeployment.deployClaim();
         rescuePatches = RescueContractsDeployment.deployRescuePatches(address(claim));
     }
@@ -96,13 +96,25 @@ contract VenusRescueProposalTest is Test {
         }
     }
 
-    /// Executes the whole proposal. `skipXvsSettle` drops step 1, only to measure what it prevents.
-    function _executeProposal(bool skipXvsSettle, bool includeXvsGrant) internal {
+    /// Executes the proposal. `skipXvsSettle` drops step 1, only to measure what it prevents;
+    /// `andOpen = false` stops before the last command (open()), only to inspect the state between.
+    function _executeProposal(bool skipXvsSettle, bool includeXvsGrant, bool andOpen) internal {
         address[7] memory m = _markets();
         for (uint256 i; i < 7; ++i) assertEq(IVToken(m[i]).admin(), TIMELOCK, "vToken admin is not the Normal Timelock");
         VenusRescueProposalCommands.Command[] memory c = _commands(includeXvsGrant);
         uint256 first = skipXvsSettle ? VenusRescueProposalCommands.XVS_SETTLE_COMMANDS : 0;
-        for (uint256 k = first; k < c.length; ++k) _send(c[k]);
+        uint256 end = andOpen ? c.length : c.length - 1;
+        for (uint256 k = first; k < end; ++k) _send(c[k]);
+    }
+
+    function _executeProposal(bool skipXvsSettle, bool includeXvsGrant) internal {
+        _executeProposal(skipXvsSettle, includeXvsGrant, true);
+    }
+
+    /// The proposal's last command: open().
+    function _sendOpen() internal {
+        VenusRescueProposalCommands.Command[] memory c = _commands(false);
+        _send(c[c.length - 1]);
     }
 
     function _executeProposal() internal {
@@ -113,7 +125,7 @@ contract VenusRescueProposalTest is Test {
         address[7] memory m = _markets();
         uint256[7] memory t0;
         for (uint256 i; i < 7; ++i) t0[i] = IERC20(m[i]).balanceOf(TREASURY);
-        _executeProposal();
+        _executeProposal(false, false, false);
         for (uint256 i; i < 7; ++i) {
             uint256 toVenus = IERC20(m[i]).balanceOf(TREASURY) - t0[i];
             uint256 toClaim = IERC20(m[i]).balanceOf(address(claim));
@@ -122,9 +134,10 @@ contract VenusRescueProposalTest is Test {
             assertEq(IERC20(m[i]).balanceOf(st[i]), 0, "strategy kept vTokens");
             assertEq(IVToken(m[i]).implementation(), RakeFrozenPositions.VBEP20_DELEGATE_IMPLEMENTATION, "not restored");
         }
-        assertEq(claim.openedAt(), 0, "the VIP must not open the window");
+        assertEq(claim.openedAt(), 0, "not open before the last command");
 
-        claim.open();
+        _sendOpen();
+        assertEq(claim.openedAt(), block.timestamp, "the VIP's last command opens the window");
         for (uint256 i; i < 7; ++i) {
             assertEq(IERC20(m[i]).balanceOf(address(claim)), 0, "vTokens not redeemed");
             address u = IVToken(m[i]).underlying();
@@ -134,21 +147,27 @@ contract VenusRescueProposalTest is Test {
         }
     }
 
-    function test_claimContract_cannotOpenBeforeTheProposalExecutes() public {
-        vm.expectRevert("token not funded");
+    /// Only the Timelock opens, so nobody can open early with 1 wei of each token or hold the
+    /// window back; the deployer cannot open it either.
+    function test_claimContract_onlyTheTimelockCanOpen() public {
+        vm.expectRevert("not opener");
         claim.open();
+        vm.prank(makeAddr("anyone"));
+        vm.expectRevert("not opener");
+        claim.open();
+        assertEq(claim.OPENER(), TIMELOCK);
     }
 
     /// With action 0 the claim contract earns ~no XVS from the move; without it, the over-credit.
     function test_proposal_xvsSettleStepStopsBackdatedXvsRewards() public {
         uint256 snap = vm.snapshotState();
-        _executeProposal(true, false);
+        _executeProposal(true, false, false);
         IComptrollerS(COMPTROLLER).claimVenus(address(claim), _list());
         uint256 withoutSettle = IERC20(XVS).balanceOf(address(claim));
         emit log_named_decimal_uint("XVS to claim WITHOUT settle (over-credit)", withoutSettle, 18);
 
         vm.revertToState(snap);
-        _executeProposal(false, false);
+        _executeProposal(false, false, false);
         uint256 tr0 = IERC20(XVS).balanceOf(TREASURY);
         IComptrollerS(COMPTROLLER).claimVenus(address(claim), _list());
         IComptrollerS(COMPTROLLER).claimVenus(TREASURY, _list());
@@ -162,8 +181,6 @@ contract VenusRescueProposalTest is Test {
     /// Optional: Venus grants the strategies' earned XVS straight to the claim contract.
     function test_proposal_optionalXvsGrantReachesTheClaimContract() public {
         _executeProposal(false, true);
-        assertGe(IERC20(XVS).balanceOf(address(claim)), XVS_GRANT);
-        claim.open();
         assertEq(claim.pool(XVS), XVS_GRANT - XVS_GRANT * 1_250 / 10_000, "xvs pool");
     }
 
@@ -243,7 +260,7 @@ contract VenusRescueProposalTest is Test {
             emit log_named_uint(string.concat("market ", vm.toString(i), " other supplier minted (1=yes)"), minted[i] ? 1 : 0);
         }
 
-        claim.open(); // redeems the claim contract's 80% through the ordinary path
+        _send(c[k++]); // open(): redeems the claim contract's 80% through the ordinary path
 
         for (uint256 i; i < 7; ++i) {
             assertGe(IMarketS(m[i]).exchangeRateStored(), er0[i], "exchange rate fell after redeem");
@@ -256,11 +273,11 @@ contract VenusRescueProposalTest is Test {
         }
     }
 
-    /// Full chain: VIP (settle XVS, rescue, optional XVS grant) → owner opens → every one of the
+    /// Full chain: VIP (settle XVS, rescue, optional XVS grant, open) → every one of the
     /// 103 wallets claims → each gets exactly pool × shares ÷ total, the fee is 12.5% of what
     /// arrived, pools empty to dust, and after the window the dust sweeps to the beneficiary.
     function test_proposalThenOpen_all103DepositorsClaimTheirExactShare() public {
-        _executeProposal(false, true);
+        _executeProposal(false, true, false);
 
         uint256 n = claim.tokenCount();
         address[] memory toks = new address[](n + 1);
@@ -274,7 +291,7 @@ contract VenusRescueProposalTest is Test {
         assertEq(ws.length, 103);
         uint256 preview = claim.claimable(ws[0], toks[0]);
 
-        claim.open();
+        _sendOpen();
         for (uint256 i; i <= n; ++i) {
             uint256 fee = IERC20(toks[i]).balanceOf(address(this)) - fee0[i];
             assertGt(claim.pool(toks[i]), 0, "token not funded");
@@ -329,15 +346,17 @@ contract VenusRescueProposalTest is Test {
         }
     }
 
-    /// The pre-open sweep is the owner's alone, even long after the emergency delay.
-    function test_claimContract_onlyOwnerCanSweepBeforeOpenEvenAfterDay120() public {
+    /// A VIP that lands long after deploy opens the 90 days in its own transaction, and nothing
+    /// can be swept until they have run.
+    function test_proposal_lateVipOpensTheWindowInItsOwnTransaction() public {
         vm.warp(block.timestamp + 200 days);
         _executeProposal();
-        address vUsdc = _markets()[5];
+        assertEq(claim.openedAt(), block.timestamp);
+        assertEq(claim.deadline(), block.timestamp + 90 days);
+        address usdc = claim.tokens(5);
+        assertGt(claim.pool(usdc), 0);
         vm.prank(makeAddr("anyone"));
-        vm.expectRevert("not owner");
-        claim.sweep(vUsdc);
-        claim.open();
-        assertGt(claim.pool(claim.tokens(5)), 0);
+        vm.expectRevert("window open");
+        claim.sweep(usdc);
     }
 }

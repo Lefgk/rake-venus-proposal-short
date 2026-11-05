@@ -71,9 +71,9 @@ contract PostRescueRakeFarmSafetyTest is Test {
     function test_afterRescue_noOneCanDepositInflateSharesOrDoubleWithdraw_thenDepositorsClaim() public {
         address dev = makeAddr("deployer");
         uint256 g0 = gasleft();
-        vm.prank(dev); // the deployer is owner, fee recipient and beneficiary
+        vm.prank(dev); // the deployer is fee recipient and beneficiary
         RakeDepositorsClaim claim = new RakeDepositorsClaim();
-        assertEq(claim.owner(), dev);
+        assertEq(claim.OPENER(), TIMELOCK);
         assertEq(claim.FEE_RECIPIENT(), dev);
         assertEq(claim.BENEFICIARY(), dev);
         emit log_named_uint("deploy gas", g0 - gasleft());
@@ -141,8 +141,8 @@ contract PostRescueRakeFarmSafetyTest is Test {
             assertEq(IERC20(btcb).balanceOf(TOP), b0, "farm paid TOP something after rescue");
         }
 
-        // ---- open and claim ----
-        vm.prank(dev);
+        // ---- open (the VIP's last command) and claim ----
+        vm.prank(TIMELOCK);
         claim.open();
         uint256 qBtc = claim.claimable(TOP, claim.tokens(1));
         uint256 qEth = claim.claimable(TOP, claim.tokens(2));

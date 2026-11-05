@@ -40,6 +40,7 @@ sequenceDiagram
     participant T as Venus Normal Timelock
     participant C as Comptroller
     participant V as vToken (×7)
+    participant K as Claim contract
     T->>C: claimVenus(claim contract and treasury, 7 markets): settle XVS index
     loop each of the 7 markets
         T->>V: accrueInterest()
@@ -50,6 +51,7 @@ sequenceDiagram
     opt Venus chooses to
         T->>C: _grantXVS(claim contract, ~8,022 XVS)
     end
+    T->>K: open(): redeem vTokens, 10% recovery cost, start the 90 days
 ```
 
 The debt math: retiring borrow `d` while burning `d / ER` vTokens leaves the exchange rate unchanged.
@@ -60,7 +62,7 @@ ER = (cash + borrows − reserves) / supply
 ```
 
 - `VenusMarketRescuePatch`: the strategy, the claim contract and the original implementation are fixed at deploy; the Venus treasury `0xF322942f644A996A617BD29c16bd7d231d9F35E9` and the 20% are constants. Only the market's live `admin()` can call it. It reverts if interest is not accrued this block, if the collateral is below the debt, or if the exchange rate falls.
-- The claim contract holds its 80% as vTokens until `open()`, which redeems them through the ordinary Venus redeem path. The VIP does not open the claim window.
+- The VIP's last command is the claim contract's `open()`: it redeems the 80% of vTokens through the ordinary Venus redeem path, takes the 10% recovery cost and starts the 90 days. Only the Normal Timelock can call `open()`, so nobody can open the window early (e.g. after sending 1 wei of each token) or hold it back. `open()` has no balance checks, so it cannot fail on amounts.
 - **Timelock:** the Normal Timelock (48 h delay) is the admin of all seven vTokens, so the VIP must run through it.
 - **Storage writes:** The patch writes the market's storage directly and skips the comptroller hooks (XVS indexes, Prime). That is safe here because both receivers' XVS is settled first and none of the strategies is a Prime holder.
 - **XVS:** because both receivers' XVS is settled first, the recovery earns 0 XVS. Without that step, about 3,246 XVS of back-dated rewards would be credited to the claim contract.
@@ -77,22 +79,20 @@ sequenceDiagram
     R->>V: 2. hand over the claim address
     V->>V: 3. deploy 7 × VenusMarketRescuePatch(strategy, claim, current vToken implementation)
     V->>V: 4. verify every address, then propose and vote the VIP
-    V->>V: 5. VIP executes (48 h timelock): settle XVS, rescue 7 markets, optional XVS grant
-    R->>R: 6. open(): redeem vTokens, take 10%, start the 90 days
-    D->>D: 7. claim() from their own wallets, 90 days
-    D->>R: 8. sweep() by anyone after the window: leftovers to the owner
+    V->>V: 5. VIP executes (48 h timelock): settle XVS, rescue 7 markets, optional XVS grant, open()
+    D->>D: 6. claim() from their own wallets, 90 days
+    D->>R: 7. sweep() by anyone after the window: leftovers to the owner
 ```
 
 | Step | Who | Needs |
 |---|---|---|
-| 1. Deploy the claim contract (`DeployRakeDepositorsClaim`) | RAKE | nothing (all inputs are in the code); the deployer becomes owner |
+| 1. Deploy the claim contract (`DeployRakeDepositorsClaim`) | RAKE | nothing (all inputs are in the code); the deployer becomes fee recipient and beneficiary |
 | 2. Hand over the claim address | RAKE → Venus | `addresses.json` |
 | 3. Deploy 7 rescue patches (`DeployVenusMarketRescuePatches`) | Venus | per market: the strategy, the claim address, the vToken's current `implementation()` |
 | 4. Verify and vote | Venus | `addresses.json`, this repo's tests |
-| 5. Execute the VIP | Venus Normal Timelock | — |
-| 6. `open()` | RAKE, after step 5 is on-chain | — |
-| 7. `claim()` | each depositor | their own wallet |
-| 8. `sweep()` | anyone, after 90 days | — |
+| 5. Execute the VIP, ending with `open()` | Venus Normal Timelock | — |
+| 6. `claim()` | each depositor | their own wallet |
+| 7. `sweep()` | anyone, after 90 days | — |
 
 If Venus changes a market's implementation between steps 3 and 5, that market's patch must be redeployed with the new implementation and the VIP updated.
 
@@ -103,10 +103,9 @@ If Venus changes a market's implementation between steps 3 and 5, that market's 
 ```mermaid
 flowchart LR
     D["deploy<br/>shares per wallet × token<br/>read from RakeFarm, frozen"] --> F["80% arrives as vTokens<br/>(inside the VIP)"]
-    F --> O["open() by deployer<br/>redeems vTokens · 10% recovery cost<br/>pools fixed (XVS can grow)"]
+    F --> O["open(), the VIP's last command<br/>redeems vTokens · 10% recovery cost<br/>pools fixed (XVS can grow)"]
     O --> C["claim() — 90 days<br/>each wallet, own tokens"]
     C --> S["sweep → owner<br/>after 90 days"]
-    D -. "never opened" .-> E["sweep → owner, owner only<br/>after 120 days from deploy"]
 ```
 
 | Share of total | |
@@ -116,7 +115,7 @@ flowchart LR
 | Depositors | 70% |
 
 - **Entitlement:** a wallet's cut of a token = pool × (wallet's farm shares ÷ strategy `sharesTotal`), both fixed at deploy. No amounts are typed in. The recorded shares sum to each pool's total, so the 103-wallet list is complete. One wallet (`0x667cBbEd2E1295EC25381e2b056547eb90FC8F96`) holds a single share of the BUSD pool, worth less than 1 wei, so it receives nothing.
-- **Rules:** `open()` needs every token balance > 0. Claims are paid only to `msg.sender`, with per-token flags so one token that refuses a transfer blocks only itself. A hard cap stops any token paying out past its pool. Before `open()`, only the owner can sweep, so a VIP that lands late can still be opened.
+- **Rules:** Only the Venus Normal Timelock can call `open()`, and it has no balance checks. Claims are paid only to `msg.sender`, with per-token flags so one token that refuses a transfer blocks only itself. A hard cap stops any token paying out past its pool. Nothing can be swept before `open()`.
 - **XVS (optional, up to Venus, stays open):** Venus may send XVS at any time, in any number of transfers, before or after `open()`; each arrival is fee'd once and claimable during the window. A wallet's XVS cut = XVS pool × Σ(pool weight × wallet shares ÷ total) ÷ Σ weights. The weights are the XVS each strategy earned (vETH 2,025 · vBUSD 1,887 · vUSDC 1,706 · vBTC 1,423 · vLINK 481 · vUSDT 421 · vDOT 79).
 - **Can every wallet claim?** No depositor is a contract. 9 of the 103 carry EIP-7702 delegation code (`0xef0100…`); these are key-held wallets that call `claim()` directly.
 - **Entitlement table:** `data/depositor_share_of_each_frozen_pool.csv` gives each wallet's % of each pool, read from RakeFarm `userInfo` ÷ `sharesTotal`. The 103 wallets sum to 100.000000% of every pool; `DeployRakeDepositorsClaimTest` checks that the recorded shares cover every pool. Amounts = % × the pool's depositor share on the day the funds arrive.
@@ -178,20 +177,20 @@ forge script script/VenusRescueProposal.s.sol --fork-url $BSC_RPC_URL
 | Script | What it does | Its test |
 |---|---|---|
 | `RescueAmounts` | read-only: each position's net value (tokens, USD at Venus oracle prices) and the 20/10/70 split | n/a (it only reads) |
-| `DeployRakeDepositorsClaim` | RAKE: deploys the claim contract (deployer = owner, fee recipient, beneficiary) | `DeployRakeDepositorsClaimTest` |
+| `DeployRakeDepositorsClaim` | RAKE: deploys the claim contract (deployer = fee recipient and beneficiary; only the Timelock opens it) | `DeployRakeDepositorsClaimTest` |
 | `DeployVenusMarketRescuePatches` | Venus: deploys one `VenusMarketRescuePatch` per market bound to its strategy, the claim contract and the market's current implementation | `DeployVenusMarketRescuePatchesTest` |
-| `VenusRescueProposal` | builds the 30 commands (31 with the XVS grant) and prints them in `GovernorBravo.propose()` form | `VenusRescueProposalTest` sends those exact bytes from the Timelock |
+| `VenusRescueProposal` | builds the 31 commands (32 with the XVS grant), the last one `open()` and prints them in `GovernorBravo.propose()` form | `VenusRescueProposalTest` sends those exact bytes from the Timelock |
 
 | Suite | What it proves | Result |
 |---|---|---|
-| `RakeDepositorsClaimTest` | pro-rata split, fee, 90-day window, owner-only 120-day emergency sweep, XVS weighting and late XVS, no double claim, claimable = 0 after the window | 20 / 20 |
-| `VenusRescueProposalTest` | the proposal's exact commands on a BSC fork: 20/80 split, `open()` redeems every vToken, admin-only patch, XVS settle = 0, optional XVS grant, other suppliers unchanged on all 7 markets; full chain VIP → open → all 103 wallets claim exactly their share → pools empty to dust → sweep; a late VIP cannot be swept by a third party | 9 / 9 |
+| `RakeDepositorsClaimTest` | pro-rata split, fee, 90-day window, only the opener opens (1 wei cannot open early), `open()` never fails on amounts, no sweep before open, XVS weighting and late XVS, no double claim, claimable = 0 after the window | 21 / 21 |
+| `VenusRescueProposalTest` | the proposal's exact commands on a BSC fork: 20/80 split, the last command `open()` redeems every vToken, admin-only patch, XVS settle = 0, optional XVS grant, other suppliers unchanged on all 7 markets; full chain VIP (ending in `open()`) → all 103 wallets claim exactly their share → pools empty to dust → sweep; only the Timelock can open; a late VIP opens the window in its own transaction | 9 / 9 |
 | `PostRescueRakeFarmSafetyTest` | after the rescue: nobody can deposit, inflate farm shares or withdraw twice; depositors then claim | 1 / 1 |
-| `DeployRakeDepositorsClaimTest` | claim contract owned by the deployer, tokens in market order, all 103 depositors snapshotted | 2 / 2 |
+| `DeployRakeDepositorsClaimTest` | only the Venus Normal Timelock can open, tokens in market order, all 103 depositors snapshotted | 2 / 2 |
 | `DeployVenusMarketRescuePatchesTest` | each patch bound to its strategy, the claim contract, the treasury and the current implementation; refuses to deploy if a market's implementation changed | 2 / 2 |
 | `VenusMarketRescuePatchTest` | debt settled from the strategies' own collateral, exchange rate never falls, admin-only, one-shot | 5 / 5 |
 
-Fork runs were made at BSC block 131,658,996 (39 / 39 pass).
+Fork runs were made at BSC block 131,872,237 (40 / 40 pass).
 
 ---
 

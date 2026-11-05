@@ -17,8 +17,8 @@ contract DeployRakeDepositorsClaimTest is Test {
         claim = RescueContractsDeployment.deployClaim();
     }
 
-    function test_deploy_claimContractIsOwnedByTheDeployerAndListsTheSevenUnderlyingsInMarketOrder() public view {
-        assertEq(claim.owner(), address(this), "owner");
+    function test_deploy_onlyTheTimelockOpensAndTheSevenUnderlyingsAreInMarketOrder() public view {
+        assertEq(claim.OPENER(), 0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396, "opener is not the Normal Timelock");
         assertEq(claim.FEE_RECIPIENT(), address(this), "fee recipient");
         assertEq(claim.BENEFICIARY(), address(this), "beneficiary");
         assertEq(claim.openedAt(), 0, "must not be open");

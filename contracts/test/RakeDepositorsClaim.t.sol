@@ -72,7 +72,7 @@ contract RakeDepositorsClaimTest is Test, IClaimCfg {
     ClaimMockToken usdc; // Binance-Peg USDC: 18 decimals on BSC
     ClaimMockToken btc8; // 8-decimal token, to prove decimals don't matter to the split
     ClaimMockToken xvs; // optional extra token, split by each pool's earned-XVS weight
-    // the deployer (this test) is owner, fee recipient and beneficiary
+    // the deployer (this test) is the opener (stands in for the Timelock), fee recipient and beneficiary
     address beneficiary = address(this);
     address dev = address(this);
     address alice = makeAddr("alice");
@@ -200,13 +200,25 @@ contract RakeDepositorsClaimTest is Test, IClaimCfg {
         c.claimToken(address(usdc));
     }
 
-    function test_open_revertsIfAnyTokenNeverArrived() public {
+    /// open() has no balance checks, so it cannot revert the VIP over amounts: a pool is
+    /// whatever arrived, even zero.
+    function test_open_neverFailsOnAmounts() public {
         usdc.mint(address(c), 1e18);
-        vm.expectRevert("token not funded");
-        c.open();
-        btc8.mint(address(c), 1);
         c.open();
         assertGt(c.openedAt(), 0);
+        assertEq(c.pool(address(btc8)), 0);
+        assertEq(c.pool(address(usdc)), 1e18 - 1e18 * c.FEE_BPS() / 10_000);
+    }
+
+    /// Only the opener (the Timelock) can open: 1 wei of every token does not let anyone start
+    /// the window early and fix the pools at dust.
+    function test_open_oneWeiCannotOpenEarly() public {
+        usdc.mint(address(c), 1);
+        btc8.mint(address(c), 1);
+        vm.prank(alice);
+        vm.expectRevert("not opener");
+        c.open();
+        assertEq(c.openedAt(), 0);
     }
 
     function test_claim_oneBlockedTokenDoesNotBlockTheOtherTokens() public {
@@ -222,10 +234,9 @@ contract RakeDepositorsClaimTest is Test, IClaimCfg {
         assertEq(c.claimable(alice, address(btc8)), 3.51e8);
     }
 
-    function test_open_ownerLosesAllPowerOnceOpened() public {
+    function test_open_onlyOnce() public {
         _fundAndOpen(200_000e18, 3.9e8);
-        assertEq(c.owner(), address(0));
-        vm.expectRevert("not owner");
+        vm.expectRevert("already open");
         c.open();
     }
 
@@ -285,22 +296,15 @@ contract RakeDepositorsClaimTest is Test, IClaimCfg {
         assertApproxEqAbs(left, 45_000e18, 1);
     }
 
-    /// If open() never runs, funds are not locked forever: the owner can sweep 120 days after deploy.
-    function test_sweep_ifNeverOpenedOwnerCanSweepAfter120Days() public {
+    /// Nothing can be swept before the window opens, by anyone, however long it waits.
+    function test_sweep_nothingBeforeOpen() public {
         usdc.mint(address(c), 50_000e18);
-        vm.warp(c.DEPLOYED_AT() + 121 days);
-        vm.prank(alice); // nobody but the owner, before open — a late VIP stays openable
-        vm.expectRevert("not owner");
-        c.sweep(address(usdc));
-
-        vm.warp(c.DEPLOYED_AT() + 120 days);
+        vm.warp(block.timestamp + 1_000 days);
         vm.expectRevert("not open");
         c.sweep(address(usdc));
-
-        vm.warp(block.timestamp + 1);
-        uint256 b0 = usdc.balanceOf(beneficiary);
+        vm.prank(beneficiary);
+        vm.expectRevert("not open");
         c.sweep(address(usdc));
-        assertEq(usdc.balanceOf(beneficiary) - b0, 50_000e18);
     }
 
     /// XVS: pool weight first (3:1), then shares within the pool.
@@ -366,9 +370,9 @@ contract RakeDepositorsClaimTest is Test, IClaimCfg {
         c.claimToken(address(xvs));
     }
 
-    /// A VIP that lands after day 120 can still be opened: no third-party sweep got there first.
-    function test_open_fundsArrivingAfterDay120CanStillBeOpened() public {
-        vm.warp(c.DEPLOYED_AT() + 200 days);
+    /// A VIP that lands long after deploy still opens: nothing was swept in the meantime.
+    function test_open_fundsArrivingLongAfterDeployStillOpen() public {
+        vm.warp(block.timestamp + 200 days);
         _fundAndOpen(200_000e18, 3.9e8);
         vm.prank(alice);
         c.claim();

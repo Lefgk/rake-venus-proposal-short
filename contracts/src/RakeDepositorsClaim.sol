@@ -20,9 +20,9 @@ interface IVTokenClaim {
 }
 
 /// @title RakeDepositorsClaim — 90-day pro-rata claim window for RAKE stuck-pool depositors
-/// @notice Deploy with no arguments, BEFORE the Venus rescue. The deployer is the owner (opens
-///         the window once), the fee recipient (12.5% of what arrives = 10% of the total) and the
-///         beneficiary (unclaimed funds after 90 days). The farm, the 7 stuck Venus pools
+/// @notice Deploy with no arguments, BEFORE the Venus rescue. The deployer is the fee recipient
+///         (12.5% of what arrives = 10% of the total) and the beneficiary (unclaimed funds after
+///         90 days). Only the Venus Normal Timelock can open the window, as the VIP's last action. The farm, the 7 stuck Venus pools
 ///         (pids 9–15) and the depositor wallets are fixed in code. Nobody types an amount.
 ///
 ///         Each wallet's claim is read from the RakeFarm itself: its cut of a token =
@@ -38,15 +38,15 @@ interface IVTokenClaim {
 ///     missed wallet later), so a farm withdrawal after the rescue (which burns shares and pays
 ///     nothing) cannot lower a claim.
 ///  2. Funds arrive: the Venus rescue moves 80% of each position's net vTokens here.
-///  3. Owner calls `open()`: redeems every vToken to its underlying, checks every token has
-///     arrived (balance > 0), takes FEE_BPS
-///     of each token to FEE_RECIPIENT, fixes the rest as that token's pool (XVS excepted: its
-///     pool grows as XVS arrives), starts the 90-day clock. The owner role is burned here.
+///  3. In the same VIP, the Timelock calls `open()` as its last action: redeems every vToken to
+///     its underlying, takes FEE_BPS of each token to FEE_RECIPIENT, fixes the rest as that
+///     token's pool (XVS excepted: its pool grows as XVS arrives), starts the 90-day clock.
+///     Funds and opening land in one transaction: nobody can open early (e.g. after sending
+///     1 wei of each token) or hold the window back, and `open()` has no balance checks to fail.
 ///  4. Depositors call `claim()` (all tokens) or `claimToken(token)` (one) — paid only to
 ///     msg.sender. Per-token flags, so one token that refuses a transfer blocks only itself.
 ///  5. After the deadline anyone may call `sweep(token)`; everything left goes to BENEFICIARY.
-///     If `open()` never runs, the owner (only) can sweep EMERGENCY_DELAY after deploy, so funds
-///     can never be locked here for good; nobody else can sweep before the window opens.
+///     Nothing can be swept before the window opens.
 ///
 /// XVS (optional, stays open): Venus may send XVS at any time, in any number of transfers,
 /// before or after `open()`. Each arrival is fee'd once and added to the XVS pool; during the
@@ -58,16 +58,14 @@ contract RakeDepositorsClaim {
     address internal constant RAKE_FARM = 0x7f7Bf15B9c68D23339C31652C8e860492991760d;
 
     uint256 public constant CLAIM_WINDOW = 90 days;
-    uint256 public constant EMERGENCY_DELAY = 120 days;
 
     IRakeFarm public immutable FARM;
     address public immutable BENEFICIARY;
     address public immutable FEE_RECIPIENT;
     uint256 public immutable FEE_BPS;
-    uint256 public immutable DEPLOYED_AT;
+    address public immutable OPENER; // Venus Normal Timelock: the only caller of open()
     address public immutable XVS; // optional extra token, address(0) = none
 
-    address public owner;
     uint256 public openedAt;
 
     address[] public tokens;
@@ -97,14 +95,13 @@ contract RakeDepositorsClaim {
         BENEFICIARY = msg.sender;
         FEE_RECIPIENT = msg.sender;
         FEE_BPS = _feeBps();
-        DEPLOYED_AT = block.timestamp;
+        OPENER = _opener();
         XVS = _xvs();
         uint256[] memory weights = _xvsWeights();
         require(weights.length == 0 || weights.length == pids.length, "weights length");
         address[] memory vts = _vTokens();
         require(vts.length == 0 || vts.length == pids.length, "vTokens length");
         FARM = IRakeFarm(farm);
-        owner = msg.sender;
         for (uint256 i; i < pids.length; ++i) {
             (address want,,,, address strat) = IRakeFarm(farm).poolInfo(pids[i]);
             require(want != address(0) && strat != address(0), "bad pool");
@@ -152,16 +149,16 @@ contract RakeDepositorsClaim {
         }
     }
 
-    /// @notice Take the fee, fix each token's pool and total shares, start the window.
-    ///         Every token must have arrived (balance > 0).
+    /// @notice Redeem, take the fee, fix each token's pool, start the window. Called by the
+    ///         Timelock as the VIP's last action, in the transaction that delivers the funds.
+    ///         No balance checks: a pool is whatever arrived.
     function open() external {
-        require(msg.sender == owner, "not owner");
+        require(msg.sender == OPENER, "not opener");
         require(openedAt == 0, "already open");
         for (uint256 i; i < tokens.length; ++i) {
             address t = tokens[i];
             _redeemAll(t);
             uint256 bal = _balance(t);
-            require(bal > 0, "token not funded");
             uint256 fee = bal * FEE_BPS / 10_000;
             if (fee > 0) {
                 _safeTransfer(t, FEE_RECIPIENT, fee);
@@ -171,7 +168,6 @@ contract RakeDepositorsClaim {
         }
         openedAt = block.timestamp;
         _syncXvs(); // XVS is optional: whatever is here now is pooled, more can follow
-        owner = address(0);
         emit Opened(block.timestamp, block.timestamp + CLAIM_WINDOW);
     }
 
@@ -206,14 +202,10 @@ contract RakeDepositorsClaim {
     // ─────────────────────────────────── after deadline ───────────────────────────────────
 
     /// @notice Send the full remaining balance of `token` to BENEFICIARY. Anyone may call after
-    ///         the claim window closes. If the window was never opened, only the owner may call,
-    ///         EMERGENCY_DELAY after deploy, so a late VIP cannot be swept by a third party
-    ///         before the owner opens the window.
+    ///         the claim window closes; never before the window opens.
     function sweep(address token) external {
-        if (openedAt == 0) {
-            require(msg.sender == owner, "not owner");
-            require(block.timestamp > DEPLOYED_AT + EMERGENCY_DELAY, "not open");
-        } else require(block.timestamp > openedAt + CLAIM_WINDOW, "window open");
+        require(openedAt != 0, "not open");
+        require(block.timestamp > openedAt + CLAIM_WINDOW, "window open");
         uint256 amt = _balance(token);
         require(amt > 0, "nothing to sweep");
         _safeTransfer(token, BENEFICIARY, amt);
@@ -375,6 +367,11 @@ contract RakeDepositorsClaim {
     /// @notice The depositor list compiled into this contract, for anyone to check.
     function builtInWallets() external view returns (address[] memory) {
         return _wallets();
+    }
+
+    /// Venus Normal Timelock, admin of all seven markets: the VIP runs through it.
+    function _opener() internal view virtual returns (address) {
+        return 0x939bD8d64c0A9583A7Dcea9933f7b21697ab6396;
     }
 
     function _farm() internal view virtual returns (address) {

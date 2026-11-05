@@ -16,6 +16,11 @@ interface IClaimCfg {
 /// Test-only: RakeDepositorsClaim with farm, pools, fee and wallets read from the deployer,
 /// so the claim logic can run against a mock farm or another pool.
 contract RakeDepositorsClaimHarness is RakeDepositorsClaim {
+    /// The deploying test stands in for the Venus Timelock.
+    function _opener() internal view override returns (address) {
+        return msg.sender;
+    }
+
     function _farm() internal view override returns (address) {
         return IClaimCfg(msg.sender).cfgFarm();
     }
