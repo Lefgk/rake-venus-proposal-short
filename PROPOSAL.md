@@ -26,17 +26,17 @@ Our owner keys cannot fix it. No function restores the permission, the contracts
 
 ## 2. What we did in 2021
 
-We compensated depositors at our own expense. The frozen vaults kept their full RAKE rewards, and the founder stopped selling the founder allocation, the founder's only pay, so RAKE stayed liquid enough for depositors to sell. On-chain today:
+We compensated depositors at our own expense. The frozen vaults kept their full RAKE rewards, and the founder stopped selling their allocation, their only pay. That allocation was at least as large as what the frozen pools earned, so every RAKE the founder did not sell left depositors the liquidity they needed to sell theirs. In effect, the founder's pay went to them. On-chain today:
 
 - **92% of the founder's RAKE has never moved.** Only 0.046% was ever sold.
 - **80 of 101 affected wallets** had received RAKE worth more than their whole frozen position by 25 March 2021, counting only the frozen pools. The other 21 were short about $4,100 in total.
 - **97 of 101 wallets sold their RAKE.** The four that never sold hold under $70 frozen.
 
-Coverage uses 24 July 2026 prices (block 114,966,322). Not every depositor was fully covered and nobody signed a settlement, which is why the funds now go to depositors, not to us. *(Appendix A4.)*
+Coverage uses 24 July 2026 prices (block 114,966,322). *(Appendix A4.)*
 
 ## 3. Why now
 
-We first raised this with Venus in 2021 and set it aside while depositors were being compensated. Waiting now costs money:
+We first raised this with Venus in 2021, during Venus's own depeg crisis, when the Venus team had a full plate, and got no traction. Meanwhile we compensated depositors ourselves. We kept reaching out about every six months and tried every other route ourselves. Those routes are now exhausted *(Appendix A1)*, and Venus's new leadership can take this on. Every month of delay costs money:
 
 - **The debt keeps growing.** It accrues interest nobody can repay.
 - **Venus's own risk actions erode the positions.** When DOT was deprecated as collateral, the DOT position was liquidated sixteen times in under a minute. LINK is exposed to the same.
@@ -62,7 +62,7 @@ flowchart LR
 
 **Fees.** Venus 20%, for the governance action and the review. Founder 10%, for the investigation, the contracts, the audit and this proposal. Depositors 70%. Neither fee depends on how many depositors claim.
 
-**Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Paying out automatically would send funds to wallets nobody controls, and the owner bore the 2021 compensation. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever. We expect much to go unclaimed, because many 2021 wallets are inactive.
+**Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Paying out automatically would send funds to wallets nobody controls. The owner is a party to this recovery, since the positions sit in the owner's contracts. The owner also bore the 2021 compensation, and did and paid for the work behind this recovery. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever. We expect much to go unclaimed, because many 2021 wallets are inactive.
 
 **Notifying depositors.** When the window opens, each of the 103 wallets gets an on-chain message: a zero-value transaction carrying the claim link and the deadline. The dates are also on https://claim-frontend-one.vercel.app.
 
