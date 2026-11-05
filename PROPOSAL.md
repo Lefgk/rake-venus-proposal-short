@@ -7,7 +7,7 @@
 
 Since February 2021, about $1,075,000 of depositor funds has been frozen in seven Venus markets by a bug in RAKE's own strategy contracts. Only a Venus governance action can release it.
 
-We ask Venus to approve one atomic transaction that settles each frozen position's debt from its own collateral, pays Venus 20%, and sends the rest to a claim contract. The claim contract keeps 10% of the total as recovery cost *(Appendix A6)*, and each of the 103 depositors withdraws their share of the remaining 70% from their own wallet. Nobody holds the funds in between.
+We ask Venus to approve one atomic transaction that settles each frozen position's debt from its own collateral, pays Venus 20%, and sends the rest to a claim contract. The claim contract keeps 10% of the total as recovery cost *(Appendix [A6](APPENDIX.md#a6-recovery-cost-10))*, and each of the 103 depositors withdraws their share of the remaining 70% from their own wallet. Nobody holds the funds in between.
 
 ```mermaid
 pie title $1,074,900 net of debt (BSC block 131,610,085, Venus oracle prices)
@@ -22,7 +22,7 @@ Depositors have 90 days from when the claim window opens. Unclaimed funds then g
 
 RAKE, an auto-compounding farm on BNB Chain, launched on 25 February 2021 with single-asset vaults that supplied to Venus: BUSD, BTC, ETH, LINK, USDT, USDC and DOT. About 80 minutes after launch we paused deposits as a precaution. The strategy code, an outdated copy of AutoFarm's leveraged Venus strategy, un-pauses without restoring the vault's permission to use its Venus market, so none of the seven could supply, repay or withdraw again.
 
-Our owner keys cannot fix it. No function restores the permission, the contracts cannot be upgraded, and the emergency function excludes these exact tokens. We tested every route, including liquidating our own positions. Only Venus, which controls the markets, can act. *(Appendix A1.)*
+Our owner keys cannot fix it. No function restores the permission, the contracts cannot be upgraded, and the emergency function excludes these exact tokens. We tested every route, including liquidating our own positions. Only Venus, which controls the markets, can act. *(Appendix [A1](APPENDIX.md#a1-the-bug-and-why-there-is-no-owner-side-fix).)*
 
 ## 2. What we did in 2021
 
@@ -32,7 +32,7 @@ We compensated depositors at our own expense. The frozen vaults kept their full 
 - **80 of 103 affected wallets** had received RAKE worth more than their whole frozen position by 25 March 2021, counting only the frozen pools. 21 were short about $4,100 in total, and 2 hold only dust ($0).
 - **97 of 103 wallets sold their RAKE.** The six that never sold hold under $70 frozen.
 
-Coverage uses 24 July 2026 prices (block 114,966,322). *(Appendix A4.)*
+Coverage uses 24 July 2026 prices (block 114,966,322). *(Appendix [A4](APPENDIX.md#a4-the-2021-compensation-data).)*
 
 ## 3. Why now
 
@@ -54,13 +54,13 @@ flowchart LR
     C -.->|"after 90 days: leftovers"| O
 ```
 
-**One transaction.** For each market, the VIP swaps in a narrowly scoped rescue patch. The patch settles the position's debt from its own collateral and moves the net vTokens, 20% to the Venus treasury and 80% to the claim contract. The VIP then restores the original contract. The exchange rate and cash do not change, so other suppliers lose nothing. If any step fails, everything reverts. No capital is advanced and nobody has to forward funds. *(Appendix A2 and A5.)*
+**One transaction.** For each market, the VIP swaps in a narrowly scoped rescue patch. The patch settles the position's debt from its own collateral and moves the net vTokens, 20% to the Venus treasury and 80% to the claim contract. The VIP then restores the original contract. The exchange rate and cash do not change, so other suppliers lose nothing. If any step fails, everything reverts. No capital is advanced and nobody has to forward funds. *(Appendix [A2](APPENDIX.md#a2-the-rescue-one-vip-transaction) and [A5](APPENDIX.md#a5-tests-and-reproduction).)*
 
 **Who deploys what.** RAKE deploys the claim contract. Venus deploys the seven rescue patches bound to it, so the VIP only runs code Venus deployed. Every address is in `addresses.json`.
 
-**How depositors claim.** The claim contract records each wallet's farm shares at deployment, read from RAKE's farm. Nobody types in an amount. Each depositor claims from the wallet they deposited with and receives their share of each pool in the original token. Every wallet's share is published in [depositor_share_of_each_frozen_pool.csv](data/depositor_share_of_each_frozen_pool.csv). *(Appendix A3.)*
+**How depositors claim.** The claim contract records each wallet's farm shares at deployment, read from RAKE's farm. Nobody types in an amount. Each depositor claims from the wallet they deposited with and receives their share of each pool in the original token. Every wallet's share is published in [depositor_share_of_each_frozen_pool.csv](data/depositor_share_of_each_frozen_pool.csv). *(Appendix [A3](APPENDIX.md#a3-the-claim-contract).)*
 
-**Fees.** Venus 20%, for the governance action and the review. Recovery cost 10% *(Appendix A6)*. Depositors 70%. Neither fee depends on how many depositors claim.
+**Fees.** Venus 20%, for the governance action and the review. Recovery cost 10% *(Appendix [A6](APPENDIX.md#a6-recovery-cost-10))*. Depositors 70%. Neither fee depends on how many depositors claim.
 
 **Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Since these events happened in 2021, a significant portion of the affected wallets are now inactive, lost or compromised. Sending tokens to them automatically would only result in permanent loss. The owner is a party to this recovery, since the positions sit in the owner's contracts. The owner also bore the cost of the 2021 compensation and paid for the work behind this recovery. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever.
 
@@ -72,7 +72,7 @@ A temporary change to seven market contracts, inside one transaction, that:
 
 - touches only the seven hard-coded RAKE positions;
 - creates no bad debt and leaves other suppliers' balances, the exchange rate and cash unchanged;
-- creates no XVS for anyone, because the receivers' XVS is settled first; Venus may choose to grant the ~8,022 XVS the strategies earned to depositors *(Appendix A2)*;
+- creates no XVS for anyone, because the receivers' XVS is settled first; Venus may choose to grant the ~8,022 XVS the strategies earned to depositors *(Appendix [A2](APPENDIX.md#a2-the-rescue-one-vip-transaction))*;
 - restores the original contracts, and reverts completely if any step fails.
 
 In return Venus gets about $215,000, seven unmanageable positions closed, and an in-house audited, fully tested recovery paid for by us.
@@ -94,15 +94,15 @@ This proposal meets all six. In AutoFarm's recovery, funds went to the owner on 
 
 - **Figures will change.** Dollar values move with prices and will be refreshed on filing day; `contracts/script/RescueAmounts.s.sol` reproduces them at any block.
 - **Our data is our own.** The per-wallet compensation figures are our reconstruction from public chain data. Independent checks are welcome.
-- **Part of the BUSD position is gone.** Interest after Venus wound down BUSD, and a liquidation on 27 October 2023, took part of it. 206,755 BUSD remains, with no debt. *(Details in Appendix A1.)*
+- **Part of the BUSD position is gone.** Interest after Venus wound down BUSD, and a liquidation on 27 October 2023, took part of it. 206,755 BUSD remains, with no debt. *(Details in Appendix [A1](APPENDIX.md#a1-the-bug-and-why-there-is-no-owner-side-fix).)*
 
 ## Technical appendix
 
 The full technical appendix is in [APPENDIX.md](APPENDIX.md):
 
-- **A1:** the bug, and why there is no owner-side fix
-- **A2:** the rescue, one VIP transaction
-- **A3:** the claim contract and every wallet's share
-- **A4:** the 2021 compensation data
-- **A5:** tests and reproduction
-- **A6:** the 10% recovery cost
+- **[A1](APPENDIX.md#a1-the-bug-and-why-there-is-no-owner-side-fix):** the bug, and why there is no owner-side fix
+- **[A2](APPENDIX.md#a2-the-rescue-one-vip-transaction):** the rescue, one VIP transaction
+- **[A3](APPENDIX.md#a3-the-claim-contract):** the claim contract and every wallet's share
+- **[A4](APPENDIX.md#a4-the-2021-compensation-data):** the 2021 compensation data
+- **[A5](APPENDIX.md#a5-tests-and-reproduction):** tests and reproduction
+- **[A6](APPENDIX.md#a6-recovery-cost-10):** the 10% recovery cost
