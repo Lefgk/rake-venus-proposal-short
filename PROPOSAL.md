@@ -64,7 +64,7 @@ flowchart LR
 
 **Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Since these events happened in 2021, a significant portion of the affected wallets are now inactive, lost or compromised. Sending tokens to them automatically would only result in permanent loss. The owner is a party to this recovery, since the positions sit in the owner's contracts. The owner also bore the cost of the 2021 compensation and paid for the work behind this recovery. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever.
 
-**Notifying depositors.** When the window opens, each of the 103 wallets gets an on-chain message: a zero-value transaction carrying the claim link and the deadline. The dates are also on https://rakeclaim.com.
+**Notifying depositors.** When the window opens, each of the 103 wallets gets an on-chain message: a zero-value transaction carrying the claim link and the deadline. The vote and the claim window are also announced on the Venus governance forum and on RAKE's social media, and the dates are on https://rakeclaim.com.
 
 ## 5. What Venus is being asked to accept
 
