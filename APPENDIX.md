@@ -166,9 +166,10 @@ FORK_BLOCK=<block> BSC_RPC_URL=<BSC archive RPC> forge test                # eve
 
 forge script script/RescueAmounts.s.sol --fork-url $BSC_RPC_URL --fork-block-number 131610085
                                      # the proposal's figures: $1,074,900 at Venus oracle prices
-forge script script/DeployRakeDepositorsClaim.s.sol --rpc-url $BSC_RPC_URL --broadcast
+export BSC_MEV_RPC_URL=https://bscrpc.pancakeswap.finance   # MEV-protected RPC for every --broadcast
+forge script script/DeployRakeDepositorsClaim.s.sol --rpc-url $BSC_MEV_RPC_URL --broadcast
                                      # RAKE: deploy the claim contract; recorded in addresses.json
-forge script script/DeployVenusMarketRescuePatches.s.sol --rpc-url $BSC_RPC_URL --broadcast
+forge script script/DeployVenusMarketRescuePatches.s.sol --rpc-url $BSC_MEV_RPC_URL --broadcast
                                      # Venus: deploy the 7 rescue patches; recorded in addresses.json
 forge script script/VenusRescueProposal.s.sol --fork-url $BSC_RPC_URL
                                      # the proposal: targets, values, signatures, calldatas

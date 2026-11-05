@@ -10,7 +10,7 @@ import "./libraries/AddressesJson.sol";
 /// The key is read from $PRIVATE_KEY; the deployer gets no power over the patches.
 ///
 ///   forge script script/DeployVenusMarketRescuePatches.s.sol --fork-url $BSC_RPC_URL              # dry run
-///   forge script script/DeployVenusMarketRescuePatches.s.sol --rpc-url $BSC_RPC_URL --broadcast   # deploy
+///   forge script script/DeployVenusMarketRescuePatches.s.sol --rpc-url $BSC_MEV_RPC_URL --broadcast   # deploy, MEV-protected RPC
 contract DeployVenusMarketRescuePatches is Script {
     function run() external {
         address claim = AddressesJson.deployed(".deployed.claimContract", "DeployRakeDepositorsClaim");

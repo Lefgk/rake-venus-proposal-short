@@ -10,7 +10,7 @@ import "./libraries/AddressesJson.sol";
 /// recipient and beneficiary. Only the Venus Normal Timelock can call open(), as the VIP's last action.
 ///
 ///   forge script script/DeployRakeDepositorsClaim.s.sol --fork-url $BSC_RPC_URL              # dry run
-///   forge script script/DeployRakeDepositorsClaim.s.sol --rpc-url $BSC_RPC_URL --broadcast   # deploy
+///   forge script script/DeployRakeDepositorsClaim.s.sol --rpc-url $BSC_MEV_RPC_URL --broadcast   # deploy, MEV-protected RPC
 contract DeployRakeDepositorsClaim is Script {
     function run() external {
         uint256 pk = vm.envUint("PRIVATE_KEY");

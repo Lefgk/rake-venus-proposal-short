@@ -28,6 +28,7 @@ flowchart LR
 ```
 cd contracts && forge install foundry-rs/forge-std --no-git
 export BSC_RPC_URL=<BSC archive RPC>
+export BSC_MEV_RPC_URL=https://bscrpc.pancakeswap.finance   # MEV-protected; every --broadcast goes through it
 forge script script/RescueAmounts.s.sol --fork-url $BSC_RPC_URL           # what moves, and to whom
 forge script script/DeployRakeDepositorsClaim.s.sol --fork-url $BSC_RPC_URL   # RAKE deploy, dry run (needs $PRIVATE_KEY)
 forge script script/DeployVenusMarketRescuePatches.s.sol --fork-url $BSC_RPC_URL       # Venus deploy, dry run (needs $PRIVATE_KEY)
