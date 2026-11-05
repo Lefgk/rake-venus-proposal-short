@@ -62,7 +62,7 @@ flowchart LR
 
 **Fees.** Venus 20%, for the governance action and the review. Founder 10%, recovery cost. Depositors 70%. Neither fee depends on how many depositors claim.
 
-**Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Paying out automatically would send funds to wallets nobody controls. The owner is a party to this recovery, since the positions sit in the owner's contracts. The owner also bore the 2021 compensation, and did and paid for the work behind this recovery. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever. We expect much to go unclaimed, because many 2021 wallets are inactive.
+**Unclaimed funds.** After the 90 days, what is left goes to the strategies' owner. Paying out automatically would send funds to wallets nobody controls. The owner is a party to this recovery, since the positions sit in the owner's contracts. The owner also bore the cost of the 2021 compensation and paid for the work behind this recovery. If the window is never opened, the owner can sweep after 120 days, so nothing is locked forever. We expect much to go unclaimed, because many 2021 wallets are inactive.
 
 **Notifying depositors.** When the window opens, each of the 103 wallets gets an on-chain message: a zero-value transaction carrying the claim link and the deadline. The dates are also on https://claim-frontend-one.vercel.app.
 
