@@ -113,11 +113,11 @@ contract VenusMarketRescuePatchTest is Test {
             // ---- the reviewer-facing invariants ----
             // The burn is rounded UP by design, so the rate can rise by the dust from at most
             // one vToken-wei of supply — never fall. One wei of supply is worth er/totalSupply
-            // of rate, so that is the exact ceiling on the drift.
+            // of rate, taken over the supply left after the burn, so that is the ceiling on the drift.
             assertGe(b.er, a.er, string.concat(ms[i].name, ": exchange rate FELL"));
             assertLe(
                 b.er - a.er,
-                (a.er / a.totalSupply) + 1,
+                (a.er / b.totalSupply) + 1,
                 string.concat(ms[i].name, ": exchange rate drift exceeds one-wei rounding")
             );
             assertEq(b.cash, a.cash, string.concat(ms[i].name, ": cash moved"));

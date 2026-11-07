@@ -124,7 +124,18 @@ contract RakeDepositorsClaim {
             }
         }
         require(XVS == address(0) || (!isToken[XVS] && xvsWeightTotal > 0), "bad xvs setup");
-        _record(_wallets());
+        address[] memory wallets = _wallets();
+        bytes memory masks = _poolMasks();
+        require(masks.length == 0 || masks.length == wallets.length, "masks length");
+        uint256[] memory recordedShares = _record(wallets, masks);
+        // Masks only skip reads of pools a wallet holds nothing in. If one were wrong, some
+        // shares would go unrecorded; requiring the recorded shares to add up to each
+        // strategy's sharesTotal makes that impossible to deploy.
+        if (masks.length > 0) {
+            for (uint256 j; j < tokens.length; ++j) {
+                require(recordedShares[j] == totalShares[tokens[j]], "masks incomplete");
+            }
+        }
     }
 
     /// @notice Snapshot wallets' live farm shares, read from the farm itself (nobody types an
@@ -133,17 +144,23 @@ contract RakeDepositorsClaim {
     ///         nothing and burns shares, so a live read would let a depositor lose their claim.
     ///         Shares can only fall in these pools, so a snapshot never exceeds what was owed.
     function record(address[] calldata wallets) external {
-        _record(wallets);
+        _record(wallets, "");
     }
 
-    function _record(address[] memory wallets) internal {
+    /// Reads wallet i's shares in pool j only if bit j of masks[i] is set (no masks = every
+    /// pool). Returns the shares recorded per pool.
+    function _record(address[] memory wallets, bytes memory masks) internal returns (uint256[] memory sums) {
+        sums = new uint256[](tokens.length);
         for (uint256 i; i < wallets.length; ++i) {
             address w = wallets[i];
             if (recorded[w]) continue;
             recorded[w] = true;
+            uint8 m = masks.length == 0 ? type(uint8).max : uint8(masks[i]);
             for (uint256 j; j < tokens.length; ++j) {
+                if (m & (1 << j) == 0) continue;
                 (uint256 s,) = FARM.userInfo(pidOf[tokens[j]], w);
                 if (s > 0) snapshot[w][tokens[j]] = s;
+                sums[j] += s;
             }
             emit Recorded(w);
         }
@@ -416,6 +433,12 @@ contract RakeDepositorsClaim {
     function _pids() internal view virtual returns (uint256[] memory p) {
         p = new uint256[](7);
         for (uint256 i; i < 7; ++i) p[i] = 9 + i;
+    }
+
+    /// One byte per wallet in _wallets() order: bit j set = holds shares in pids[j]
+    /// (bit 0 BUSD … bit 6 DOT). 146 reads instead of 721; checked in the constructor.
+    function _poolMasks() internal view virtual returns (bytes memory) {
+        return hex"01022102020120310121100210010104020121114004067b04011020017f02402210200310030101022040100410184004010650043010204401022001200110022604310101104a01020201202111010110040122103011201002021742040101012004204830";
     }
 
     /// Every wallet holding shares in pids 9–15 (from RakeFarm Deposit/Withdraw history).

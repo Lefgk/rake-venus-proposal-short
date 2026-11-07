@@ -21,6 +21,7 @@ flowchart LR
 | `contracts/script/DeployRakeDepositorsClaim.s.sol` | Step 1, RAKE: deploys the claim contract, records it in `addresses.json` |
 | `contracts/script/DeployVenusMarketRescuePatches.s.sol` | Step 3, Venus: deploys the 7 rescue patches bound to that claim contract, records them |
 | `contracts/script/VenusRescueProposal.s.sol` | Step 4, Venus: prints the proposal Venus submits: targets, values, signatures, calldatas |
+| `contracts/script/SimulateVIP.s.sol` | The whole VIP on a BSC fork, no key: deploys, runs all 31 commands as the Timelock, prints where the funds go |
 | `contracts/script/libraries/` | Shared by scripts and tests: the addresses, the deployment, the proposal's command list |
 | `contracts/test/` | One test file per script and per contract, same name |
 | Claim site | https://rakeclaim.com |
@@ -33,6 +34,7 @@ forge script script/RescueAmounts.s.sol --fork-url $BSC_RPC_URL           # what
 forge script script/DeployRakeDepositorsClaim.s.sol --fork-url $BSC_RPC_URL   # RAKE deploy, dry run (needs $PRIVATE_KEY)
 forge script script/DeployVenusMarketRescuePatches.s.sol --fork-url $BSC_RPC_URL       # Venus deploy, dry run (needs $PRIVATE_KEY)
 forge script script/VenusRescueProposal.s.sol --fork-url $BSC_RPC_URL     # the proposal's commands
+forge script script/SimulateVIP.s.sol --fork-url $BSC_RPC_URL             # the whole VIP on a fork, results printed
 forge test --match-contract '^RakeDepositorsClaimTest$'                   # no RPC
 forge test                                                                # all, on a BSC fork
 ```

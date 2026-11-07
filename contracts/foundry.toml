@@ -10,7 +10,7 @@ evm_version = "cancun"
 via_ir = true
 # The deploy scripts write the deployed addresses into addresses.json;
 # VenusRescueProposal reads them from it.
-fs_permissions = [{ access = "read-write", path = "../addresses.json" }]
+fs_permissions = [{ access = "read-write", path = "../addresses.json" }, { access = "write", path = "./out/vip-proposal.json" }]
 
 [rpc_endpoints]
 bsc = "${BSC_RPC_URL}"

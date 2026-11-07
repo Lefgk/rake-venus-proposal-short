@@ -37,6 +37,9 @@ contract RakeDepositorsClaimHarness is RakeDepositorsClaim {
         return IClaimCfg(msg.sender).cfgWallets();
     }
 
+    /// Mock farms: read every pool.
+    function _poolMasks() internal pure override returns (bytes memory) {}
+
     function _xvs() internal view override returns (address) {
         return IClaimCfg(msg.sender).cfgXvs();
     }

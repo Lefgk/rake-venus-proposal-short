@@ -92,7 +92,7 @@ This proposal meets all six. In AutoFarm's recovery, funds went to the owner on 
 
 ## 7. Disclosures
 
-- **Figures will change.** Dollar values move with prices and will be refreshed on filing day; `contracts/script/RescueAmounts.s.sol` reproduces them at any block.
+- **Figures will change.** Dollar values move with prices and will be refreshed on filing day; `contracts/script/RescueAmounts.s.sol` reproduces them at any block. `contracts/script/SimulateVIP.s.sol` runs the whole VIP on a BSC fork and prints where every token goes.
 - **Our data is our own.** The per-wallet compensation figures are our reconstruction from public chain data. Independent checks are welcome.
 - **Part of the BUSD position is gone.** Interest after Venus wound down BUSD, and a liquidation on 27 October 2023, took part of it. 206,755 BUSD remains, with no debt. *(Details in Appendix [A1](APPENDIX.md#a1-the-bug-and-why-there-is-no-owner-side-fix).)*
 

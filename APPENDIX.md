@@ -118,7 +118,7 @@ flowchart LR
 - **Rules:** Only the Venus Normal Timelock can call `open()`, and it has no balance checks. Claims are paid only to `msg.sender`, with per-token flags so one token that refuses a transfer blocks only itself. A hard cap stops any token paying out past its pool. Nothing can be swept before `open()`.
 - **XVS (optional, up to Venus, stays open):** Venus may send XVS at any time, in any number of transfers, before or after `open()`; each arrival is fee'd once and claimable during the window. A wallet's XVS cut = XVS pool × Σ(pool weight × wallet shares ÷ total) ÷ Σ weights. The weights are the XVS each strategy earned (vETH 2,025 · vBUSD 1,887 · vUSDC 1,706 · vBTC 1,423 · vLINK 481 · vUSDT 421 · vDOT 79).
 - **Can every wallet claim?** No depositor is a contract. 9 of the 103 carry EIP-7702 delegation code (`0xef0100…`); these are key-held wallets that call `claim()` directly.
-- **Entitlement table:** `data/depositor_share_of_each_frozen_pool.csv` gives each wallet's % of each pool, read from RakeFarm `userInfo` ÷ `sharesTotal`. The 103 wallets sum to 100.000000% of every pool; `DeployRakeDepositorsClaimTest` checks that the recorded shares cover every pool. Amounts = % × the pool's depositor share on the day the funds arrive.
+- **Entitlement table:** `data/depositor_share_of_each_frozen_pool.csv` gives each wallet's % of each pool, read from RakeFarm `userInfo` ÷ `sharesTotal`. The 103 wallets sum to 100.000000% of every pool; The constructor reads only the 146 wallet/pool pairs that hold shares and reverts unless they add up to each pool's `sharesTotal`. Amounts = % × the pool's depositor share on the day the funds arrive.
 - **Claim site:** https://rakeclaim.com
 
 ---
@@ -173,6 +173,8 @@ forge script script/DeployVenusMarketRescuePatches.s.sol --rpc-url $BSC_MEV_RPC_
                                      # Venus: deploy the 7 rescue patches; recorded in addresses.json
 forge script script/VenusRescueProposal.s.sol --fork-url $BSC_RPC_URL
                                      # the proposal: targets, values, signatures, calldatas
+forge script script/SimulateVIP.s.sol --fork-url $BSC_RPC_URL
+                                     # the whole VIP on a fork, no key: every command, where the funds go
 ```
 
 | Script | What it does | Its test |
@@ -180,6 +182,7 @@ forge script script/VenusRescueProposal.s.sol --fork-url $BSC_RPC_URL
 | `RescueAmounts` | read-only: each position's net value (tokens, USD at Venus oracle prices) and the 20/10/70 split | n/a (it only reads) |
 | `DeployRakeDepositorsClaim` | RAKE: deploys the claim contract (deployer = fee recipient and beneficiary; only the Timelock opens it) | `DeployRakeDepositorsClaimTest` |
 | `DeployVenusMarketRescuePatches` | Venus: deploys one `VenusMarketRescuePatch` per market bound to its strategy, the claim contract and the market's current implementation | `DeployVenusMarketRescuePatchesTest` |
+| `SimulateVIP` | deploys both contracts on a fork, sends all 31 commands from the Timelock, prints gas per step and each token's 20/10/70 amounts, saves the `propose()` arrays to `out/vip-proposal.json` | `VenusRescueProposalTest` |
 | `VenusRescueProposal` | builds the 31 commands (32 with the XVS grant), the last one `open()` and prints them in `GovernorBravo.propose()` form | `VenusRescueProposalTest` sends those exact bytes from the Timelock |
 
 | Suite | What it proves | Result |
@@ -191,7 +194,7 @@ forge script script/VenusRescueProposal.s.sol --fork-url $BSC_RPC_URL
 | `DeployVenusMarketRescuePatchesTest` | each patch bound to its strategy, the claim contract, the treasury and the current implementation; refuses to deploy if a market's implementation changed | 2 / 2 |
 | `VenusMarketRescuePatchTest` | debt settled from the strategies' own collateral, exchange rate never falls, admin-only, one-shot | 5 / 5 |
 
-Fork runs were made at BSC block 131,872,237 (40 / 40 pass).
+Fork runs were made at BSC block 132,118,260 (40 / 40 pass).
 
 ---
 
